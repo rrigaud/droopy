@@ -1,0 +1,24 @@
+{
+  "@quasar/qpdfviewer": {},
+  "@quasar/icon-genie": {
+    "minify_dev": "pngquant",
+    "minify_build": "zopfli",
+    "cordova": {
+      "background_color": "#000074",
+      "splashscreen_type": "generate"
+    },
+    "build_always": true,
+    "__internal": {
+      "dev": {
+        "electron": {
+          "iconHash": "d53a0312183d68054a37059b39c2f164"
+        }
+      },
+      "build": {
+        "electron": {
+          "iconHash": "d53a0312183d68054a37059b39c2f164"
+        }
+      }
+    }
+  }
+}
