@@ -1,4 +1,4 @@
-[![Droopy Logo](https://github.com/rrigaud/chris/blob/master/src/app-icon.png)](https://github.com/rrigaud/droopy)
+[![Droopy Logo](https://github.com/rrigaud/droopy/blob/master/app-icon.png)](https://github.com/rrigaud/droopy)
 
 # DROOPY (DROpbox cOPY) : Pourquoi faire ?
 
