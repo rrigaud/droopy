@@ -6,12 +6,12 @@ DROOPY (DROpbox cOPY) assure le découpage et la distribution de copies PDF dans
 
 Il s'intègre de manière plus large dans un Workflow d'enseignant de correction de copies numérisées :
 
-1 / Création d'un PDF pour une évaluation : Scan des copies (par exemple grâce un photocopieur muni d'un port USB)
-2 / Correction de l'évaluation (par exemple à l'aide d'une tablette numérique et d'un stylet)
-3 / Découpage du PDF de l'évaluation en copies PDF par élève
-4 / Distribution des copies corrigées dans des dossiers élèves Dropbox privés et sécurisés
-5 / Export des résultats (par exemple un tableur)
-6 / L'accès à ces dossiers se fait via un simple portail (par exemple une PWA) ultra léger qui redirige chaque élève vers son dossier personnel
+1. Création d'un PDF pour une évaluation : Scan des copies (par exemple grâce un photocopieur muni d'un port USB)
+2. Correction de l'évaluation (par exemple à l'aide d'une tablette numérique et d'un stylet)
+3. Découpage du PDF de l'évaluation en copies PDF par élève
+4. Distribution des copies corrigées dans des dossiers élèves Dropbox privés et sécurisés
+5. Export des résultats (par exemple un tableur)
+6. L'accès à ces dossiers se fait via un simple portail (par exemple une PWA) ultra léger qui redirige chaque élève vers son dossier personnel
 
 Droopy s'occupe des points 3, 4 et 5 qui seraient extrêmement chronophages à gérer manuellement.
 
