@@ -562,7 +562,7 @@ export default {
                         // (Si pas créé, ça aurait fait une erreur, si déjà créé, le recursive devrait en éviter une)
                         let folderBackup = path.join(this.prefs.folderEvaluations, 'Backup');
                         fs.mkdirSync(folderBackup, { recursive: true });
-                        let fileBackup = path.join(folderBackup, this.name + '.pdf');
+                        let fileBackup = path.join(folderBackup, this.date + ' - ' + this.classname.value + ' - ' + this.name + '.pdf');
                         fs.copyFile(fileToSave, fileBackup, (err) => {
                             if (err) throw err;
                             // console.log('Evaluation sauvegardée');

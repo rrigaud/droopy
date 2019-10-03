@@ -234,7 +234,6 @@ export default {
             this.studentsData = [];
             csv
                 .parseFile(csvFile)
-                .on('error', error => console.error(error))
                 .on('data', row => {
                     this.studentsData.push({ classname: row[0], lastname: row[1], firstname: row[2], gender: row[3], login: row[4], password: row[5], dropboxFolder: row[6] });
                 })

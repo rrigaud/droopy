@@ -37,7 +37,7 @@ module.exports = {
     'arrow-parens': 'off',
     'one-var': 'off',
 
-    'ignoreComments': true,
+    'ignoreComments': 0,
     'import/first': 'off',
     'import/named': 'error',
     'import/namespace': 'error',
@@ -49,7 +49,7 @@ module.exports = {
     'indent': ["error", 4],
     'prefer-promise-reject-errors': 'off',
     'semi': 0,
-    'skipBlankLines': true,
+    'skipBlankLines': 0,
 
     // allow console.log during development only
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
