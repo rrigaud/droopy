@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
-    "fast-csv": "^3.4.0",
+    "fast-csv": "^4.3.6",
     "fs-extra": "^8.1.0",
     "quasar": "^1.0.0"
   },
