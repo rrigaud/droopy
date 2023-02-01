@@ -31,7 +31,8 @@ Droopy s'occupe des points 3, 4 et 5 qui seraient extrêmement chronophages à g
 
 # Dépendances
 
-Droopy a besoin des programmes `pdfseparate` et `pdfunite` pour fonctionner correctement (manipulation de PDF en ligne de commande)
+Droopy 1.0.0 avait besoin des programmes `pdfseparate` et `pdfunite` pour fonctionner correctement (manipulation de PDF en ligne de commande)
+Droopy 1.1.0 n'en a plus besoin, il utilise la librairie pdf-lib.js pour plus de simplicité sur toutes les plateformes.
 
 
 # Installation

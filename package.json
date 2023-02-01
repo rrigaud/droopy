@@ -1,6 +1,6 @@
 {
   "name": "droopy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "DROpbox cOPY (Assure le découpage et la distribution de copies PDF dans des dossiers Dropbox)",
   "productName": "Droopy",
   "cordovaId": "org.cordova.quasar.app",
@@ -16,6 +16,7 @@
     "@quasar/extras": "^1.0.0",
     "fast-csv": "^3.4.0",
     "fs-extra": "^8.1.0",
+    "pdf-lib": "^1.17.1",
     "quasar": "^1.0.0"
   },
   "devDependencies": {

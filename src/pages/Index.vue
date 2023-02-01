@@ -198,10 +198,11 @@ const { clipboard, dialog, shell } = require('electron').remote;
 const fs = require('fs');
 const fsExtra = require('fs-extra');
 const path = require('path');
-const { execFile } = require('child_process');
+const { exec } = require('child_process');
 // const homePath = electron.app.getPath('home');
 const appDataPath = electron.app.getPath('appData');
 const folderTemp = path.join(appDataPath, 'DroopyTempCut');
+const PDFDocument = require('pdf-lib').PDFDocument;
 
 export default {
     name: 'PageIndex',
@@ -264,6 +265,51 @@ export default {
         }
     },
     methods: {
+        /***************************************************************************************************************
+        *  Function : splitPdf
+        *
+        *  Méthode asynchrone qui coupe un PDF par copies grâce à pdf-lib.js
+        */
+        async splitPdf (pathToPdf) {
+            const docmentAsBytes = await fs.promises.readFile(pathToPdf);
+            // Load your PDFDocument
+            const pdfDoc = await PDFDocument.load(docmentAsBytes)
+            const numberOfPages = pdfDoc.getPages().length;
+            // On récupère le nombre de pages par copie
+            let nbPages = parseInt(this.nbPages, '10');
+
+            // Initialisation du numéro de page de la copie
+            let index1 = 0;
+            // On initialise un subDocument
+            let subDocument = await PDFDocument.create();
+
+            // Pour chaque page du PDF à découper
+            for (let i = 0; i < numberOfPages; i++) {
+                // Mise à jour du numéro de page de la copie
+                index1++;
+                // On récupère la page suivante et on l'ajoute au subDocument
+                let [copiedPage] = await subDocument.copyPages(pdfDoc, [i])
+                subDocument.addPage(copiedPage);
+                // Si on a le bon nombre de pages pour la copie, on crée le PDF (sinon, on boucle pour ajouter la suivante)
+                if (index1 === nbPages) {
+                    let pdfBytes = await subDocument.save()
+                    let dirName = folderTemp;
+                    let fileName = path.join(dirName, 'copie_' + i + '.pdf');
+                    fs.promises.writeFile(fileName, pdfBytes);
+                    // On repart sur une nouvelle copie
+                    index1 = 0;
+                    subDocument = await PDFDocument.create();
+                }
+            }
+            // Découpage réussi
+            this.$q.notify({
+                message: `Découpage du PDF : Création de copies de ${this.nbPages} pages terminée`,
+                timeout: 3000,
+                color: 'positive',
+                icon: 'horizontal_split',
+                position: 'bottom'
+            });
+        },
         /***************************************************************************************************************
         *  Function : loadDateToday
         *
@@ -389,28 +435,7 @@ export default {
                     if (err) throw err;
                     // Création d'un répertoire temporaire pour stocker les pages découpées
                     fs.mkdirSync(folderTemp);
-                    // On transforme nbPages en Integer pour éviter les problèmes
-                    let nbPages = parseInt(this.nbPages, '10');
-                    // Si les copies sont des pages uniques, on leur donne directement le bon nom, sinon au moment du merge
-                    let pageName = (nbPages > 1) ? '/page_%03d.pdf' : '/copie_%03d.pdf';
-                    // On utilise le programme "pdfseparate" en ligne de commande pour couper le PDF en pages simples
-                    execFile('pdfseparate', [this.filePdfURL, folderTemp + pageName], (error, stdout, stderr) => {
-                        if (error) {
-                            throw error;
-                        }
-                        // Découpage réussi
-                        this.$q.notify({
-                            message: `Découpage du PDF : Terminé`,
-                            timeout: 3000,
-                            color: 'positive',
-                            icon: 'horizontal_split',
-                            position: 'bottom'
-                        });
-                        // Si les copies font plusieurs pages, il faut les recoller
-                        if (nbPages > 1) {
-                            this.merge();
-                        }
-                    });
+                    this.splitPdf(this.filePdfURL);
                 });
             } else {
                 this.$q.notify({
@@ -445,16 +470,16 @@ export default {
             *  files[0][0] = pages[0]
             *  files[0][1] = pages[1]
             *  files[0][2] = pages[2]
-            *  files[0][3] = 'copie_1.pdf'
+            *  files[0][3] = 'cat output copie_1.pdf'
             *  files[1][0] = pages[3]
             *  files[1][1] = pages[4]
             *  files[1][2] = pages[5]
-            *  files[1][3] = 'copie_2.pdf'
+            *  files[1][3] = 'cat output copie_2.pdf'
             *  files[2][0] = pages[6]
             *  ...
             *
-            *  Chaque files[index1] contient donc un tableau [page_1, page_2, page_3, copie_1.pdf]
-            *  qui sera nécessaire à passer en arguments de la commande "pdfunite"
+            *  Chaque files[index1] contient donc un tableau [page_1, page_2, page_3, cat output copie_1.pdf]
+            *  qui sera nécessaire à passer en arguments de la commande "pdftk"
             */
 
             // On récupère les fichiers présents dans le dossier temporaire où l'on a découpé les pages PDF
@@ -476,21 +501,21 @@ export default {
                     if (index2 === nbPages) {
                         // On doit ajouter le nom de la copie à la fin du tableau files[index1]
                         let numeroCopie = index1 + 1;
-                        let nomCopie = 'copie_' + numeroCopie + '.pdf';
-                        files[index1][nbPages] = path.join(folderTemp, nomCopie);
+                        let nomCopie = 'cat output copie_' + numeroCopie + '.pdf';
+                        files[index1][nbPages] = nomCopie;
                         // On passe à la copie suivante
                         index1++;
                         files[index1] = [];
                         index2 = 0;
                     }
                     // On associe la page à la bonne copie
-                    files[index1][index2] = path.join(folderTemp, pages[i]);
+                    files[index1][index2] = pages[i];
                     index2++;
                 }
                 // Ajout du nom de la dernière copie
                 let numeroCopie = index1 + 1;
-                let nomCopie = 'copie_' + numeroCopie + '.pdf';
-                files[index1][nbPages] = path.join(folderTemp, nomCopie);
+                let nomCopie = 'cat output copie_' + numeroCopie + '.pdf';
+                files[index1][nbPages] = nomCopie;
                 // console.log(files);
 
                 // Initialisation du processus de suivi
@@ -498,9 +523,20 @@ export default {
                 this.nbFilesMerged = 0;
                 // Pour chaque copie
                 for (var j = 0; j < files.length; j++) {
+                    // On met en forme les paramètres pour pdftk
+                    let pdfs = files[j].join(' ');
                     // On utilise le programme "pdfunite" en ligne de commande pour recoller les pages simples
-                    execFile('pdfunite', files[j], (err, stdout, stderr) => {
-                        if (err) throw err;
+                    // exec('pdfunite', files[j], (err, stdout, stderr) => {
+                    exec('pdftk ' + pdfs, { cwd: folderTemp }, (error, stdout, stderr) => {
+                        if (error) {
+                            // console.log(error);
+                        }
+                        if (stderr) {
+                            // console.log(stderr);
+                        }
+                        if (stdout) {
+                            // console.log(stdout);
+                        }
                         // On note que l'on vient de coller une copie de plus
                         this.nbFilesMerged++;
                         // console.log(this.nbFilesMerged + ' copies recollées');
