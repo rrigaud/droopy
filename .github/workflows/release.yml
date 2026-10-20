@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+      - '*.*.*'
   workflow_dispatch:
 
 jobs:
@@ -51,8 +52,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'Droopy v__VERSION__'
+          tagName: __VERSION__
+          releaseName: 'Droopy __VERSION__'
           releaseBody: 'Consultez les fichiers joints pour télécharger Droopy pour macOS (.dmg), Windows (.msi / .exe) et Linux (.deb / .AppImage).'
           releaseDraft: false
           prerelease: false
