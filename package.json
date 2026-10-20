@@ -1,0 +1,39 @@
+{
+  "name": "droopy",
+  "version": "4.0.0",
+  "description": "DROpbox cOPY - Gestion des élèves, découpage et distribution de copies PDF",
+  "author": "Raphael Rigaud <rigaudr.dev@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rrigaud/droopy.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@primevue/themes": "^4.2.5",
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-dialog": "^2.2.0",
+    "@tauri-apps/plugin-fs": "^2.2.0",
+    "crypto-js": "^4.2.0",
+    "papaparse": "^5.4.1",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "3.11.174",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.2.5",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.0.7"
+  }
+}

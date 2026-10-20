@@ -1,0 +1,3 @@
+C'est extraordinaire. Bravo !
+Je continue avec quelques petits détails :
+- Dans le Step de Distribution des copies, tu mets dans une étiquette le nombre de copies identifiées, c'est parfait. Mais j'aimerais que tu mettes à côté une étiquette rouge avec le nombre de copies absentes. Et du coup, tu peux enlever cette information dans le tableau au-dessous, ça ne sert plus à rien. enlève aussi la moyenne entre parenthèses dans le tableau, ça ne sert à rien car tu as déjà noté la moyenne dans une étiquette bleue et c'est parfait.
