@@ -1,6 +1,6 @@
 {
   "name": "droopy",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "DROpbox cOPY - Gestion des élèves, découpage et distribution de copies PDF",
   "author": "Raphael Rigaud <rigaudr.dev@gmail.com>",
   "license": "MIT",
