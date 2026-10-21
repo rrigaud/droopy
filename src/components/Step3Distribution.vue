@@ -1,7 +1,7 @@
 <template>
-  <div class="h-full flex flex-col p-4 space-y-4">
+  <div class="h-full flex flex-col p-4 space-y-4 overflow-hidden">
     <!-- Top Evaluation Header Banner -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between shrink-0">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-300">
           <i class="pi pi-file-edit text-xl" />
@@ -29,12 +29,14 @@
     </div>
 
     <!-- Full-width Recap Table -->
-    <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+    <div class="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
       <DataTable
         :value="recapRows"
+        scrollable
+        scrollHeight="flex"
         stripedRows
         removableSort
-        class="p-datatable-sm flex-1 flex flex-col justify-between"
+        class="p-datatable-sm flex-1 min-h-0"
         tableStyle="min-width: 50rem"
       >
         <Column field="classe" header="Classe" sortable style="width: 8rem">
@@ -89,7 +91,7 @@
     </div>
 
     <!-- Bottom Action Bar -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between shrink-0">
       <div class="flex-1" />
 
       <!-- Boutons au milieu -->

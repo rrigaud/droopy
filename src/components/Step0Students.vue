@@ -1,7 +1,7 @@
 <template>
-  <div class="h-full flex flex-col p-4 space-y-4">
+  <div class="h-full flex flex-col p-4 space-y-4 overflow-hidden">
     <!-- Top Action Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
       <div class="flex flex-wrap items-center gap-2">
         <!-- Importer un CSV -->
         <Button
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Main DataTable -->
-    <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+    <div class="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
       <DataTable
         :value="students"
         v-model:selection="selectedStudents"
@@ -81,12 +81,11 @@
         v-model:filters="filters"
         filterDisplay="menu"
         :globalFilterFields="['classe', 'name', 'login', 'urlDropbox']"
-        paginator
-        :rows="25"
-        :rowsPerPageOptions="[15, 25, 50, 100]"
+        scrollable
+        scrollHeight="flex"
         stripedRows
         removableSort
-        class="p-datatable-sm flex-1 flex flex-col justify-between"
+        class="p-datatable-sm flex-1 min-h-0"
         tableStyle="min-width: 50rem"
       >
         <template #header>

@@ -31,3 +31,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 0.8);
 }
+
+/* Ensure flex scrollable data tables shrink and scroll properly */
+.p-datatable-flex-scrollable {
+  min-height: 0;
+}
+.p-datatable-flex-scrollable > .p-datatable-table-container {
+  min-height: 0;
+}
