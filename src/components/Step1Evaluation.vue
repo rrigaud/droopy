@@ -93,30 +93,11 @@
           </span>
         </div>
 
-        <!-- Controls aperçu page & Zoom -->
-        <div class="flex items-center gap-3">
-          <!-- Zoom controls -->
-          <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700/60 rounded-lg p-0.5">
-            <Button
-              icon="pi pi-search-minus"
-              text
-              rounded
-              size="small"
-              :disabled="previewScale <= 1.0"
-              @click="zoomPreview(-0.3)"
-              v-tooltip.top="'Réduire zoom'"
-            />
-            <span class="text-[11px] font-mono px-1 font-semibold">{{ Math.round(previewScale * 50) }}%</span>
-            <Button
-              icon="pi pi-search-plus"
-              text
-              rounded
-              size="small"
-              :disabled="previewScale >= 3.5"
-              @click="zoomPreview(0.3)"
-              v-tooltip.top="'Agrandir zoom'"
-            />
-          </div>
+        <!-- Controls aperçu page -->
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-200/60 dark:bg-gray-700/60 px-2 py-0.5 rounded font-medium">
+            100% de la largeur
+          </span>
 
           <!-- Page navigation -->
           <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/60 rounded-lg p-0.5">
@@ -144,9 +125,9 @@
       </div>
     </div>
 
-    <!-- Below: Cadre affichant le PDF chargé (Largeur doublée, scroll vertical) -->
-    <div class="flex-1 bg-gray-100 dark:bg-gray-900/90 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col items-center justify-center relative">
-      <div v-if="!pdfBytes" class="text-center text-gray-400 dark:text-gray-500 py-20">
+    <!-- Below: Cadre affichant le PDF chargé (100% largeur, scroll vertical) -->
+    <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col min-h-0">
+      <div v-if="!pdfBytes" class="m-auto text-center text-gray-400 dark:text-gray-500 py-20">
         <i class="pi pi-file-pdf text-6xl mb-3 text-red-300 dark:text-red-900/60 block" />
         <p class="text-base font-semibold text-gray-700 dark:text-gray-300">Aucune évaluation chargée</p>
         <p class="text-xs text-gray-400 max-w-sm mt-1">
@@ -154,11 +135,11 @@
         </p>
       </div>
 
-      <!-- Preview Canvas Scrollable Container -->
-      <div v-show="pdfBytes" class="w-full h-full flex flex-col items-center overflow-auto p-4">
+      <!-- Preview Canvas Scrollable Container (100% largeur, scroll vertical) -->
+      <div v-show="pdfBytes" class="flex-1 bg-gray-100 dark:bg-gray-900/90 overflow-y-auto overflow-x-hidden p-3 flex flex-col items-center">
         <canvas
           ref="canvasRef"
-          class="border border-gray-300 dark:border-gray-700 shadow-xl rounded-lg bg-white my-auto block max-w-none transition-all"
+          class="w-full h-auto max-w-full shadow-lg rounded-lg bg-white border border-gray-300 dark:border-gray-700 block transition-all"
         />
       </div>
     </div>
@@ -202,7 +183,7 @@ const selectedClass = ref('');
 const evaluationDate = ref(new Date());
 const isProcessing = ref(false);
 const canvasRef = ref(null);
-const previewScale = ref(2.0); // Largeur 2x plus grande pour voir très nettement le haut de la copie
+const previewScale = ref(1.8); // Échelle de rendu nette (retina) ajustée par CSS à 100% de largeur
 
 watch(
   () => props.availableClasses,
@@ -304,12 +285,6 @@ async function renderCurrentPage() {
 async function changePreviewPage(newPage) {
   if (newPage < 1 || newPage > totalPages.value) return;
   currentPage.value = newPage;
-  await renderCurrentPage();
-}
-
-async function zoomPreview(delta) {
-  const newScale = Math.max(1.0, Math.min(3.5, previewScale.value + delta));
-  previewScale.value = Math.round(newScale * 10) / 10;
   await renderCurrentPage();
 }
 

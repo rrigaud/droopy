@@ -28,9 +28,44 @@
       />
     </div>
 
-    <!-- Main 2-column layout (40% / 60%) -->
+    <!-- Main 2-column layout (60% / 40%) -->
     <div class="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-      <!-- Colonne de GAUCHE (40%): Formulaire d'identification + Copies à identifier + Copies identifiées -->
+      <!-- Colonne de GAUCHE (60%): Preview de l'évaluation de l'élève (100% largeur, scrollable verticalement) -->
+      <div class="w-full md:w-[60%] flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-h-0">
+        <!-- Toolbar aperçu copie -->
+        <div class="p-2.5 bg-gray-50 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs shrink-0">
+          <div class="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
+            <i class="pi pi-file-pdf text-red-500" />
+            <span v-if="activeCopy">
+              Aperçu Copie n°{{ activeCopy.index }} ({{ activeCopy.pageCount }} page(s))
+            </span>
+            <span v-else>Aperçu copie</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-200/60 dark:bg-gray-700/60 px-2 py-0.5 rounded font-medium">
+              100% de la largeur
+            </span>
+          </div>
+        </div>
+
+        <!-- Frame d'affichage Canvas (scrollable verticalement, 100% de la largeur sans débordement horizontal) -->
+        <div class="flex-1 bg-gray-100 dark:bg-gray-900/90 overflow-y-auto overflow-x-hidden p-3 flex flex-col items-center">
+          <div v-if="!activeCopy" class="m-auto text-center text-gray-400">
+            <i class="pi pi-file-pdf text-5xl mb-2 block" />
+            <p class="text-sm font-semibold">Aucune copie sélectionnée</p>
+          </div>
+
+          <!-- Canvas fixé à 100% de la largeur du conteneur -->
+          <canvas
+            v-show="activeCopy"
+            ref="copyCanvasRef"
+            class="w-full h-auto max-w-full shadow-lg rounded-lg bg-white border border-gray-300 dark:border-gray-700 block transition-all"
+          />
+        </div>
+      </div>
+
+      <!-- Colonne de DROITE (40%): Formulaire d'identification + Copies à identifier + Copies identifiées -->
       <div class="w-full md:w-[40%] flex flex-col gap-3 min-h-0">
         <!-- 1. En haut: Bandeau d'identification de l'élève -->
         <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
@@ -66,7 +101,7 @@
                 ✕
               </button>
 
-              <!-- Suggestions dropdown (reste confiné à la colonne de gauche sans masquer le PDF !) -->
+              <!-- Suggestions dropdown -->
               <div
                 v-if="isDropdownOpen && filteredClassStudents.length > 0"
                 class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-50 divide-y divide-gray-100 dark:divide-gray-700"
@@ -193,41 +228,6 @@
               Aucune copie encore identifiée.
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Colonne de DROITE (60%): Preview de l'évaluation de l'élève (100% largeur, scrollable verticalement) -->
-      <div class="w-full md:w-[60%] flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-h-0">
-        <!-- Toolbar aperçu copie -->
-        <div class="p-2.5 bg-gray-50 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs shrink-0">
-          <div class="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
-            <i class="pi pi-file-pdf text-red-500" />
-            <span v-if="activeCopy">
-              Aperçu Copie n°{{ activeCopy.index }} ({{ activeCopy.pageCount }} page(s))
-            </span>
-            <span v-else>Aperçu copie</span>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <span class="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-200/60 dark:bg-gray-700/60 px-2 py-0.5 rounded font-medium">
-              100% de la largeur
-            </span>
-          </div>
-        </div>
-
-        <!-- Frame d'affichage Canvas (scrollable verticalement, 100% de la largeur sans débordement horizontal) -->
-        <div class="flex-1 bg-gray-100 dark:bg-gray-900/90 overflow-y-auto overflow-x-hidden p-3 flex flex-col items-center">
-          <div v-if="!activeCopy" class="m-auto text-center text-gray-400">
-            <i class="pi pi-file-pdf text-5xl mb-2 block" />
-            <p class="text-sm font-semibold">Aucune copie sélectionnée</p>
-          </div>
-
-          <!-- Canvas fixé à 100% de la largeur du conteneur -->
-          <canvas
-            v-show="activeCopy"
-            ref="copyCanvasRef"
-            class="w-full h-auto max-w-full shadow-lg rounded-lg bg-white border border-gray-300 dark:border-gray-700 block transition-all"
-          />
         </div>
       </div>
     </div>
