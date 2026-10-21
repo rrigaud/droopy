@@ -126,7 +126,7 @@
       <div
         :class="[
           'p-3 rounded-xl border flex flex-wrap items-center justify-between gap-3 shrink-0 transition-all',
-          hasHeaderRow
+          !takeFirstRow
             ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'
             : 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60'
         ]"
@@ -135,12 +135,12 @@
           <div
             :class="[
               'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-base font-bold',
-              hasHeaderRow
+              !takeFirstRow
                 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300'
                 : 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
             ]"
           >
-            <i :class="hasHeaderRow ? 'pi pi-filter-slash' : 'pi pi-user-plus'" />
+            <i :class="!takeFirstRow ? 'pi pi-filter-slash' : 'pi pi-user-plus'" />
           </div>
           <div>
             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -153,12 +153,12 @@
               <span
                 :class="[
                   'px-2 py-0.5 rounded-full font-semibold text-[11px]',
-                  hasHeaderRow
+                  !takeFirstRow
                     ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
                     : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                 ]"
               >
-                {{ hasHeaderRow ? 'Ligne de titres (exclue de l\'import)' : 'Ligne de données (incluse comme 1er élève)' }}
+                {{ !takeFirstRow ? 'Ligne de titres (exclue de l\'import)' : 'Ligne de données (incluse comme 1er élève)' }}
               </span>
             </div>
           </div>
@@ -166,9 +166,9 @@
 
         <div class="flex items-center gap-2.5 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
           <label class="text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-200" for="header-toggle">
-            {{ hasHeaderRow ? 'Ignorer la 1ère ligne (titres)' : 'Prendre la 1ère ligne comme élève' }}
+            {{ takeFirstRow ? 'Prendre la 1ère ligne comme élève' : 'Ignorer la 1ère ligne (titres)' }}
           </label>
-          <ToggleSwitch id="header-toggle" v-model="hasHeaderRow" @change="recomputeParsedStudents" />
+          <ToggleSwitch id="header-toggle" v-model="takeFirstRow" @change="recomputeParsedStudents" />
         </div>
       </div>
 
@@ -263,7 +263,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'import-students']);
 
 const csvStep = ref(1);
-const hasHeaderRow = ref(true);
+const takeFirstRow = ref(false);
 const rawRows = ref([]);
 const columnMapping = ref([]);
 const parsedStudents = ref([]);
@@ -285,11 +285,13 @@ function initCsv(text) {
 
   if (rawRows.value.length > 0) {
     columnMapping.value = csvService.guessColumnMapping(rawRows.value[0]);
-    // Détecte intelligemment si la première ligne ressemble à des titres de colonnes
-    hasHeaderRow.value = csvService.detectHasHeader(rawRows.value[0]);
+    // Détecte intelligemment : si c'est un titre -> takeFirstRow = false (on ne la prend pas)
+    // si ce ne sont pas des titres (données réelles) -> takeFirstRow = true (on la prend)
+    const isHeader = csvService.detectHasHeader(rawRows.value[0]);
+    takeFirstRow.value = !isHeader;
   } else {
     columnMapping.value = [];
-    hasHeaderRow.value = true;
+    takeFirstRow.value = false;
   }
 
   parsedStudents.value = [];
@@ -318,10 +320,12 @@ const identifiedColumnsCount = computed(() => {
 });
 
 function recomputeParsedStudents() {
+  // Si takeFirstRow = true -> hasHeaderRow = false (on prend toute la liste dont la 1ere ligne)
+  // Si takeFirstRow = false -> hasHeaderRow = true (on ignore la 1ere ligne de titres)
   parsedStudents.value = csvService.extractStudents(
     rawRows.value,
     columnMapping.value,
-    hasHeaderRow.value
+    !takeFirstRow.value
   );
   selectedStudents.value = [...parsedStudents.value]; // sélectionne tous par défaut
 }
