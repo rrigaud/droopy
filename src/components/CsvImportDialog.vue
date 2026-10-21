@@ -9,7 +9,7 @@
     class="p-dialog-maximized"
   >
     <!-- Stepper CSV Header -->
-    <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+    <div class="border-b border-gray-200 dark:border-gray-700 pb-3 mb-3 shrink-0">
       <div class="flex items-center justify-center max-w-md mx-auto gap-3">
         <div
           :class="[
@@ -40,17 +40,14 @@
     </div>
 
     <!-- Step CSV 01: Sélection des colonnes -->
-    <div v-if="csvStep === 1" class="flex flex-col h-[calc(100%-120px)] justify-between">
-      <div class="overflow-auto flex-1 border border-gray-200 dark:border-gray-700 rounded-lg">
+    <div v-if="csvStep === 1" class="flex flex-col h-[calc(100%-75px)] justify-between space-y-3">
+      <div class="overflow-auto flex-1 border border-gray-200 dark:border-gray-700 rounded-lg min-h-0 bg-white dark:bg-gray-800">
         <table class="w-full text-sm text-left border-collapse">
-          <thead>
+          <thead class="sticky top-0 z-10">
             <tr class="bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700">
-              <!-- Colonne 0 : toggleswitch pour ignorer/prendre en compte la 1ere ligne -->
-              <th class="p-3 w-36 text-center border-r border-gray-300 dark:border-gray-700 font-normal">
-                <div class="flex flex-col items-center gap-1">
-                  <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">1ère ligne titre ?</span>
-                  <ToggleSwitch v-model="hasHeaderRow" />
-                </div>
+              <!-- Colonne numéro de ligne -->
+              <th class="p-3 w-16 text-center border-r border-gray-300 dark:border-gray-700 font-semibold text-xs text-gray-500 uppercase">
+                #
               </th>
 
               <!-- Menulist pour chaque colonne -->
@@ -85,15 +82,10 @@
             <tr
               v-for="(row, rowIdx) in previewRows"
               :key="rowIdx"
-              :class="[
-                'border-b border-gray-200 dark:border-gray-700 transition-colors',
-                rowIdx === 0 && !hasHeaderRow
-                  ? 'bg-gray-200/70 dark:bg-gray-800/80 text-gray-400 dark:text-gray-500 line-through'
-                  : 'hover:bg-blue-50/50 dark:hover:bg-gray-800/50'
-              ]"
+              class="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50/50 dark:hover:bg-gray-800/50 transition-colors"
             >
-              <td class="p-2 text-center text-xs font-mono font-medium text-gray-500 border-r border-gray-200 dark:border-gray-700">
-                Ligne {{ rowIdx + 1 }}
+              <td class="p-2 text-center text-xs font-mono font-medium text-gray-500 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+                {{ rowIdx + 1 }}
               </td>
               <td
                 v-for="(col, colIdx) in maxCols"
@@ -108,18 +100,19 @@
         </table>
       </div>
 
-      <div class="pt-4 flex items-center justify-between">
+      <div class="pt-2 flex items-center justify-between shrink-0">
         <div class="text-xs text-gray-500 dark:text-gray-400">
-          Colonnes identifiées : <strong class="text-blue-600 dark:text-blue-400">{{ identifiedColumnsCount }}</strong> (minimum 3 requis)
+          Colonnes identifiées : <strong class="text-blue-600 dark:text-blue-400">{{ identifiedColumnsCount }}</strong> (minimum 3 requis : Nom/Prénom, Classe...)
         </div>
 
         <Button
-          :label="identifiedColumnsCount >= 3 ? 'Importer ces données...' : 'Identifier les colonnes avant de pouvoir importer les données...'"
+          :label="identifiedColumnsCount >= 3 ? 'Suivant : Sélection des élèves...' : 'Associez au moins 3 colonnes pour continuer...'"
           :icon="identifiedColumnsCount >= 3 ? 'pi pi-arrow-right' : 'pi pi-info-circle'"
+          :iconPos="identifiedColumnsCount >= 3 ? 'right' : 'left'"
           :disabled="identifiedColumnsCount < 3"
           :class="[
             identifiedColumnsCount >= 3
-              ? '!bg-emerald-600 !hover:bg-emerald-700 !text-white !border-emerald-600 font-semibold'
+              ? '!bg-emerald-600 !hover:bg-emerald-700 !text-white !border-emerald-600 font-semibold shadow-sm'
               : 'p-button-secondary'
           ]"
           @click="goToStep2"
@@ -128,36 +121,108 @@
     </div>
 
     <!-- Step CSV 02: Sélection des élèves -->
-    <div v-else-if="csvStep === 2" class="flex flex-col h-[calc(100%-120px)] justify-between">
-      <div class="overflow-auto flex-1 border border-gray-200 dark:border-gray-700 rounded-lg">
+    <div v-else-if="csvStep === 2" class="flex flex-col h-[calc(100%-75px)] justify-between space-y-3">
+      <!-- Visual Banner for First Row / Header Choice -->
+      <div
+        :class="[
+          'p-3 rounded-xl border flex flex-wrap items-center justify-between gap-3 shrink-0 transition-all',
+          hasHeaderRow
+            ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'
+            : 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60'
+        ]"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            :class="[
+              'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-base font-bold',
+              hasHeaderRow
+                ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300'
+                : 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+            ]"
+          >
+            <i :class="hasHeaderRow ? 'pi pi-filter-slash' : 'pi pi-user-plus'" />
+          </div>
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Première ligne du fichier CSV
+            </div>
+            <div class="text-xs text-gray-700 dark:text-gray-200 mt-0.5 flex flex-wrap items-center gap-2">
+              <span class="font-mono bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 max-w-lg truncate" :title="firstRowPreview">
+                "{{ firstRowPreview }}"
+              </span>
+              <span
+                :class="[
+                  'px-2 py-0.5 rounded-full font-semibold text-[11px]',
+                  hasHeaderRow
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                ]"
+              >
+                {{ hasHeaderRow ? 'Ligne de titres (exclue de l\'import)' : 'Ligne de données (incluse comme 1er élève)' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
+          <label class="text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-200" for="header-toggle">
+            {{ hasHeaderRow ? 'Ignorer la 1ère ligne (titres)' : 'Prendre la 1ère ligne comme élève' }}
+          </label>
+          <ToggleSwitch id="header-toggle" v-model="hasHeaderRow" @change="recomputeParsedStudents" />
+        </div>
+      </div>
+
+      <!-- Students DataTable with scrollable flex -->
+      <div class="overflow-hidden flex-1 border border-gray-200 dark:border-gray-700 rounded-lg min-h-0 bg-white dark:bg-gray-800 flex flex-col">
         <DataTable
           :value="parsedStudents"
           v-model:selection="selectedStudents"
           dataKey="id"
-          responsiveLayout="scroll"
+          scrollable
+          scrollHeight="flex"
           stripedRows
-          class="p-datatable-sm"
+          class="p-datatable-sm flex-1 min-h-0"
+          tableStyle="min-width: 50rem"
         >
           <Column selectionMode="multiple" headerStyle="width: 3rem" />
-          <Column field="id" header="ID" sortable headerStyle="width: 5rem" />
+          <Column field="id" header="#" sortable headerStyle="width: 4rem" />
           <Column field="name" header="NOM Prénom" sortable />
-          <Column field="classe" header="Classe" sortable />
-          <Column field="gender" header="Sexe" sortable headerStyle="width: 6rem" />
+          <Column field="classe" header="Classe" sortable style="width: 7rem">
+            <template #body="{ data }">
+              <span class="font-semibold text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200">
+                {{ data.classe }}
+              </span>
+            </template>
+          </Column>
+          <Column field="gender" header="Sexe" sortable headerStyle="width: 5rem">
+            <template #body="{ data }">
+              <span
+                :class="[
+                  'text-xs px-1.5 py-0.5 rounded font-bold',
+                  data.gender === 'F' ? 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300' : 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                ]"
+              >
+                {{ data.gender }}
+              </span>
+            </template>
+          </Column>
           <Column field="login" header="Login" sortable />
           <Column field="password" header="Password" sortable />
           <Column field="urlDropbox" header="URL Dropbox" sortable />
         </DataTable>
       </div>
 
-      <div class="pt-4 flex items-center justify-between">
+      <div class="pt-2 flex items-center justify-between shrink-0">
         <Button
           label="Précédent"
           icon="pi pi-arrow-left"
           severity="secondary"
+          class="p-button-outlined"
           @click="csvStep = 1"
         />
 
-        <div class="text-sm font-medium text-gray-600 dark:text-gray-300">
+        <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/60 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600">
+          <i class="pi pi-users mr-1.5 text-blue-500" />
           {{ selectedStudents.length }} sur {{ parsedStudents.length }} élève(s) sélectionné(s)
         </div>
 
@@ -165,6 +230,7 @@
           label="Importer les élèves sélectionnés"
           icon="pi pi-check"
           :disabled="selectedStudents.length === 0"
+          class="!bg-emerald-600 !hover:bg-emerald-700 !text-white !border-emerald-600 font-semibold shadow-sm"
           @click="handleImportConfirm"
         />
       </div>
@@ -215,13 +281,15 @@ watch(
 
 function initCsv(text) {
   csvStep.value = 1;
-  hasHeaderRow.value = true;
   rawRows.value = csvService.parseRawCsv(text);
 
   if (rawRows.value.length > 0) {
     columnMapping.value = csvService.guessColumnMapping(rawRows.value[0]);
+    // Détecte intelligemment si la première ligne ressemble à des titres de colonnes
+    hasHeaderRow.value = csvService.detectHasHeader(rawRows.value[0]);
   } else {
     columnMapping.value = [];
+    hasHeaderRow.value = true;
   }
 
   parsedStudents.value = [];
@@ -240,13 +308,26 @@ const previewRows = computed(() => {
   return rawRows.value.slice(0, 5);
 });
 
+const firstRowPreview = computed(() => {
+  if (!rawRows.value.length || !rawRows.value[0]) return 'Aucune donnée';
+  return rawRows.value[0].filter((c) => c && c.toString().trim()).join(' | ');
+});
+
 const identifiedColumnsCount = computed(() => {
   return columnMapping.value.filter((val) => val && val !== 'none').length;
 });
 
-function goToStep2() {
-  parsedStudents.value = csvService.extractStudents(rawRows.value, columnMapping.value, hasHeaderRow.value);
+function recomputeParsedStudents() {
+  parsedStudents.value = csvService.extractStudents(
+    rawRows.value,
+    columnMapping.value,
+    hasHeaderRow.value
+  );
   selectedStudents.value = [...parsedStudents.value]; // sélectionne tous par défaut
+}
+
+function goToStep2() {
+  recomputeParsedStudents();
   csvStep.value = 2;
 }
 

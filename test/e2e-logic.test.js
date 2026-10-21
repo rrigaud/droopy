@@ -59,6 +59,12 @@ assert.strictEqual(studentsFromCsv[0].gender, 'M');
 assert.strictEqual(studentsFromCsv[1].name, 'DURAND Sophie');
 assert.strictEqual(studentsFromCsv[1].gender, 'F');
 assert.strictEqual(studentsFromCsv[2].gender, 'M'); // G -> M normalisé
+
+// Test detectHasHeader & extractStudents without header
+assert.strictEqual(csvService.detectHasHeader(rawRows[0]), true, 'Doit détecter les en-têtes');
+assert.strictEqual(csvService.detectHasHeader(['1', 'ABC', 'XYZ']), false, 'Ne doit pas détecter d\'en-tête');
+const allStudents = csvService.extractStudents(rawRows, mapping, false);
+assert.strictEqual(allStudents.length, 4, 'Doit extraire 4 lignes si hasHeaderRow = false');
 console.log('  ✅ csvService passed\n');
 
 // 5. Tests studentService

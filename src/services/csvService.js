@@ -26,6 +26,20 @@ export const csvService = {
   },
 
   /**
+   * Détecte si la première ligne ressemble à une ligne d'en-tête (mots-clés de colonnes)
+   */
+  detectHasHeader(firstRow) {
+    if (!firstRow || !firstRow.length) return false;
+    const headerKeywords = [
+      'nom', 'prenom', 'prénom', 'classe', 'division', 'sexe', 'genre',
+      'login', 'identifiant', 'user', 'password', 'mdp', 'pass',
+      'dropbox', 'url', 'mail', 'email', 'naissance', 'ine', 'numero', 'id'
+    ];
+    const rowStr = firstRow.map((c) => (c || '').toString().toLowerCase().trim()).join(' ');
+    return headerKeywords.some((kw) => rowStr.includes(kw));
+  },
+
+  /**
    * Heuristique pour pré-assigner automatiquement les colonnes selon les noms d'en-tête probables
    */
   guessColumnMapping(firstRow) {
