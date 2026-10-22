@@ -109,17 +109,17 @@
           <Button
             label="Exporter [élève, note]"
             icon="pi pi-copy"
-            severity="secondary"
+            severity="success"
+            class="p-button-outlined font-semibold py-2.5 px-4"
             @click="handleExportStudentAndGrades"
-            class="font-bold py-2.5 px-4"
             v-tooltip.top="'Copier [Nom\tNote] dans le presse-papier'"
           />
           <Button
             label="Exporter [note]"
             icon="pi pi-clipboard"
-            severity="secondary"
+            severity="success"
+            class="p-button-outlined font-semibold py-2.5 px-4"
             @click="handleExportGradesOnly"
-            class="font-bold py-2.5 px-4"
             v-tooltip.top="'Copier uniquement la colonne des notes (lignes vides respectées)'"
           />
         </ButtonGroup>

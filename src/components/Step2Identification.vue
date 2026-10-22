@@ -104,11 +104,13 @@
               <!-- Suggestions dropdown -->
               <div
                 v-if="isDropdownOpen && filteredClassStudents.length > 0"
+                ref="dropdownListRef"
                 class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-50 divide-y divide-gray-100 dark:divide-gray-700"
               >
                 <div
                   v-for="(st, idx) in filteredClassStudents"
                   :key="st.name"
+                  :id="`student-option-${idx}`"
                   @mousedown.prevent="selectStudent(st)"
                   :class="[
                     'p-2.5 text-xs cursor-pointer flex items-center justify-between transition-colors',
@@ -158,74 +160,100 @@
           </div>
         </div>
 
-        <!-- 2. Au-dessous : Copies à identifier -->
-        <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col overflow-hidden min-h-[160px]">
-          <div class="px-3 py-2 bg-amber-50/80 dark:bg-amber-950/30 border-b border-amber-100 dark:border-amber-900/40 flex items-center justify-between">
-            <span class="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-              <i class="pi pi-hourglass text-amber-600 dark:text-amber-400" />
-              Copies à identifier ({{ pendingCopies.length }})
+        <!-- 2. Au-dessous : Liste unique des copies (en attente en haut, identifiées au-dessous) -->
+        <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col overflow-hidden min-h-0">
+          <!-- En-tête de la liste récapitulative -->
+          <div class="px-3 py-2 bg-gray-50 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs shrink-0">
+            <span class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+              <i class="pi pi-list text-blue-500" />
+              Copies ({{ totalCopiesCount }})
             </span>
-            <span class="text-[11px] text-amber-600 dark:text-amber-400 font-medium">En attente</span>
-          </div>
-
-          <div class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60 p-1">
-            <div
-              v-for="copy in pendingCopies"
-              :key="copy.index"
-              @click="selectCopy(copy)"
-              :class="[
-                'p-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors text-xs',
-                activeCopy?.index === copy.index
-                  ? 'bg-blue-100 dark:bg-blue-900/60 font-semibold text-blue-900 dark:text-blue-100 ring-1 ring-blue-500/30'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
-              ]"
-            >
-              <div class="flex items-center gap-2">
-                <i class="pi pi-file text-gray-400 text-sm" />
-                <span>Copie {{ copy.index }}</span>
-              </div>
-              <span class="text-[11px] text-gray-400 font-mono">{{ copy.pageCount }} page(s)</span>
-            </div>
-
-            <div v-if="pendingCopies.length === 0" class="p-4 text-center text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-              <i class="pi pi-check-circle mr-1" /> Toutes les copies ont été identifiées !
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. Au-dessous : Copies identifiées -->
-        <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col overflow-hidden min-h-[160px]">
-          <div class="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between">
-            <span class="text-xs font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5">
-              <i class="pi pi-check-circle text-emerald-600 dark:text-emerald-400" />
-              Copies identifiées ({{ identifiedCopies.length }})
-            </span>
-            <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Ordre alphabétique</span>
-          </div>
-
-          <div class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60 p-1">
-            <div
-              v-for="copy in sortedIdentifiedCopies"
-              :key="copy.index"
-              @click="selectCopy(copy)"
-              :class="[
-                'p-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors text-xs',
-                activeCopy?.index === copy.index
-                  ? 'bg-blue-100 dark:bg-blue-900/60 font-semibold text-blue-900 dark:text-blue-100 ring-1 ring-blue-500/30'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-              ]"
-            >
-              <div class="flex items-center gap-2 truncate">
-                <i class="pi pi-file-pdf text-red-500 text-sm shrink-0" />
-                <span class="truncate">{{ copy.studentName }}</span>
-              </div>
-              <span class="font-bold text-xs bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded font-mono shrink-0">
-                {{ copy.grade !== undefined && copy.grade !== '' ? copy.grade : '—' }}
+            <div class="flex items-center gap-2 text-[11px]">
+              <span v-if="pendingCopies.length > 0" class="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                <i class="pi pi-hourglass text-[10px]" /> {{ pendingCopies.length }} en attente
+              </span>
+              <span v-else class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <i class="pi pi-check-circle text-[10px]" /> Toutes identifiées
+              </span>
+              <span class="text-gray-300 dark:text-gray-600">•</span>
+              <span class="text-emerald-600 dark:text-emerald-400 font-medium">
+                {{ identifiedCopies.length }} identifiée(s)
               </span>
             </div>
+          </div>
 
-            <div v-if="identifiedCopies.length === 0" class="p-4 text-center text-xs text-gray-400 italic">
-              Aucune copie encore identifiée.
+          <!-- Conteneur scrollable unique -->
+          <div class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60 p-1.5 space-y-1">
+            <!-- Section 1 : Copies à identifier (si présentes) -->
+            <div v-if="pendingCopies.length > 0">
+              <div class="px-2 pt-1 pb-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                  <i class="pi pi-hourglass text-amber-500 text-xs" />
+                  Copies à identifier ({{ pendingCopies.length }})
+                </span>
+                <span class="text-[10px] text-gray-400 font-normal lowercase">ordre du document</span>
+              </div>
+
+              <div class="space-y-0.5">
+                <div
+                  v-for="copy in pendingCopies"
+                  :key="'pending_' + copy.index"
+                  @click="selectCopy(copy)"
+                  :class="[
+                    'p-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors text-xs border border-transparent',
+                    activeCopy?.index === copy.index
+                      ? 'bg-blue-100 dark:bg-blue-900/60 font-semibold text-blue-900 dark:text-blue-100 ring-1 ring-blue-500/30'
+                      : 'hover:bg-amber-50/50 dark:hover:bg-amber-950/20 text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <i class="pi pi-file text-amber-500/80 text-sm" />
+                    <span>Copie {{ copy.index }}</span>
+                    <span class="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.2 rounded font-medium">
+                      En attente
+                    </span>
+                  </div>
+                  <span class="text-[11px] text-gray-400 font-mono">{{ copy.pageCount }} page(s)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2 : Copies identifiées (triées par ordre alphabétique) -->
+            <div :class="{ 'pt-2': pendingCopies.length > 0 }">
+              <div class="px-2 pt-1 pb-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                  <i class="pi pi-check-circle text-emerald-600 dark:text-emerald-400 text-xs" />
+                  Copies identifiées ({{ sortedIdentifiedCopies.length }})
+                </span>
+                <span class="text-[10px] text-gray-400 font-normal lowercase">ordre alphabétique</span>
+              </div>
+
+              <div class="space-y-0.5">
+                <div
+                  v-for="copy in sortedIdentifiedCopies"
+                  :key="'identified_' + copy.index"
+                  @click="selectCopy(copy)"
+                  :class="[
+                    'p-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors text-xs border border-transparent',
+                    activeCopy?.index === copy.index
+                      ? 'bg-blue-100 dark:bg-blue-900/60 font-semibold text-blue-900 dark:text-blue-100 ring-1 ring-blue-500/30'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-800 dark:text-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2 truncate">
+                    <i class="pi pi-file-pdf text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
+                    <span class="truncate font-medium">{{ copy.studentName }}</span>
+                    <span class="text-[10px] text-gray-400 font-mono shrink-0">(n°{{ copy.index }})</span>
+                  </div>
+                  <span class="font-bold text-xs bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded font-mono shrink-0">
+                    {{ copy.grade !== undefined && copy.grade !== '' ? copy.grade : '—' }}
+                  </span>
+                </div>
+
+                <div v-if="sortedIdentifiedCopies.length === 0" class="p-3 text-center text-xs text-gray-400 italic">
+                  Aucune copie encore identifiée.
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -276,6 +304,7 @@ const highlightedIndex = ref(0);
 const studentInputRef = ref(null);
 const gradeInputRef = ref(null);
 const copyCanvasRef = ref(null);
+const dropdownListRef = ref(null);
 
 watch(
   () => props.copies,
@@ -373,9 +402,29 @@ async function renderCopyPdf() {
   }
 }
 
+function scrollHighlightedIntoView(idx) {
+  nextTick(() => {
+    if (dropdownListRef.value) {
+      const itemEl = dropdownListRef.value.querySelector(`#student-option-${idx}`);
+      if (itemEl) {
+        itemEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  });
+}
+
+watch(highlightedIndex, (newIdx) => {
+  scrollHighlightedIntoView(newIdx);
+});
+
 function handleStudentInput() {
   isDropdownOpen.value = true;
   highlightedIndex.value = 0;
+  nextTick(() => {
+    if (dropdownListRef.value) {
+      dropdownListRef.value.scrollTop = 0;
+    }
+  });
 }
 
 function clearStudentSelection() {
@@ -396,6 +445,7 @@ function navigateDropdown(delta) {
   const max = filteredClassStudents.value.length;
   if (!max) return;
   highlightedIndex.value = (highlightedIndex.value + delta + max) % max;
+  scrollHighlightedIntoView(highlightedIndex.value);
 }
 
 function handleStudentEnter() {
