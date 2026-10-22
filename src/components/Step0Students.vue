@@ -89,7 +89,7 @@
         tableStyle="min-width: 50rem"
       >
         <template #header>
-          <div class="flex justify-between items-center px-1 py-1">
+          <div class="flex flex-wrap justify-between items-center gap-2 px-1 py-1">
             <div class="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
               <i class="pi pi-users text-blue-500" />
               <span>Total : {{ students.length }} élève(s)</span>
@@ -97,13 +97,37 @@
                 ({{ selectedStudents.length }} sélectionné(s))
               </span>
             </div>
-            <div class="flex items-center gap-2">
+            <!-- Filtres en partant de la droite : Recherche, Sexe, Classe -->
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Filtre Classe -->
+              <div v-if="availableClasses.length > 0" class="flex items-center">
+                <SelectButton
+                  v-model="selectedClass"
+                  :options="classFilterOptions"
+                  :allowEmpty="false"
+                  size="small"
+                  class="text-xs font-semibold"
+                />
+              </div>
+
+              <!-- Filtre Sexe -->
+              <div v-if="availableGenders.length > 0" class="flex items-center">
+                <SelectButton
+                  v-model="selectedGender"
+                  :options="genderFilterOptions"
+                  :allowEmpty="false"
+                  size="small"
+                  class="text-xs font-semibold"
+                />
+              </div>
+
+              <!-- Champ de recherche rapide -->
               <IconField iconPosition="left">
                 <InputIcon class="pi pi-search text-xs text-gray-400" />
                 <InputText
                   v-model="filters['global'].value"
                   placeholder="Recherche rapide..."
-                  class="p-inputtext-sm w-56 text-xs"
+                  class="p-inputtext-sm w-48 text-xs"
                 />
               </IconField>
             </div>
@@ -297,7 +321,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { FilterMatchMode } from '@primevue/core/api';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -307,6 +331,7 @@ import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import Dialog from 'primevue/dialog';
 import RadioButton from 'primevue/radiobutton';
+import SelectButton from 'primevue/selectbutton';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 
@@ -341,8 +366,62 @@ const confirm = useConfirm();
 
 const selectedStudents = ref([]);
 
+// Filtres par classe et sexe
+const selectedClass = ref('Toutes');
+const selectedGender = ref('Tous');
+
+const availableClasses = computed(() => {
+  const set = new Set();
+  props.students.forEach((s) => {
+    if (s.classe && s.classe.trim()) {
+      set.add(s.classe.trim());
+    }
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }));
+});
+
+const classFilterOptions = computed(() => {
+  return ['Toutes', ...availableClasses.value];
+});
+
+const availableGenders = computed(() => {
+  const set = new Set();
+  props.students.forEach((s) => {
+    if (s.gender && s.gender.trim()) {
+      set.add(s.gender.trim());
+    }
+  });
+  return Array.from(set).sort();
+});
+
+const genderFilterOptions = computed(() => {
+  return ['Tous', ...availableGenders.value];
+});
+
+watch(availableClasses, (newClasses) => {
+  if (selectedClass.value !== 'Toutes' && !newClasses.includes(selectedClass.value)) {
+    selectedClass.value = 'Toutes';
+  }
+});
+
+watch(availableGenders, (newGenders) => {
+  if (selectedGender.value !== 'Tous' && !newGenders.includes(selectedGender.value)) {
+    selectedGender.value = 'Tous';
+  }
+});
+
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  classe: { value: null, matchMode: FilterMatchMode.EQUALS },
+  gender: { value: null, matchMode: FilterMatchMode.EQUALS },
+});
+
+watch(selectedClass, (val) => {
+  filters.value.classe.value = !val || val === 'Toutes' ? null : val;
+});
+
+watch(selectedGender, (val) => {
+  filters.value.gender.value = !val || val === 'Tous' ? null : val;
 });
 
 const missingConditionMessage = computed(() => {

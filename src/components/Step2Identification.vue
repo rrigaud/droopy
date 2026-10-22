@@ -329,10 +329,14 @@ const canIdentify = computed(() => {
 
 const filteredClassStudents = computed(() => {
   const query = studentSearchText.value.toLowerCase().trim();
-  if (!query) return props.classStudents;
-  return props.classStudents.filter((s) => {
-    return (s.name || '').toLowerCase().includes(query);
-  });
+  const list = !query
+    ? [...props.classStudents]
+    : props.classStudents.filter((s) => {
+        return (s.name || '').toLowerCase().includes(query);
+      });
+  return list.sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' })
+  );
 });
 
 function isStudentAlreadyAssigned(studentName) {
