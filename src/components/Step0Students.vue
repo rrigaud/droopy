@@ -20,36 +20,36 @@
         />
 
         <!-- Batch Actions (affichés si des lignes sont sélectionnées) -->
-        <div v-if="selectedStudents.length > 0" class="flex flex-wrap items-center gap-2 pl-2 border-l border-gray-300 dark:border-gray-600 animate-fadeIn">
-          <Button
-            :label="`Générer le dossier (${selectedStudents.length})`"
-            icon="pi pi-folder-plus"
-            severity="info"
-            @click="handleBatchCreateFolders"
-            v-tooltip.bottom="'Créer le dossier local pour chaque élève sélectionné'"
-          />
-          <Button
-            :label="`Générer un mot de passe (${selectedStudents.length})`"
-            icon="pi pi-key"
-            severity="warn"
-            @click="handleBatchGeneratePasswords"
-            v-tooltip.bottom="'Générer un mot de passe français 6-10 lettres sans accent'"
-          />
-          <Button
-            :label="`Exporter le JS chiffré (${selectedStudents.length})`"
-            icon="pi pi-lock"
-            severity="help"
-            @click="handleBatchExportEncryptedJs"
-            v-tooltip.bottom="'Générer le fichier students.js avec sha256'"
-          />
-          <Button
-            icon="pi pi-trash"
-            severity="danger"
-            text
-            rounded
-            @click="handleBatchDeleteStudents"
-            v-tooltip.bottom="'Supprimer les élèves sélectionnés'"
-          />
+        <div v-if="selectedStudents.length > 0" class="flex flex-wrap items-center pl-2 border-l border-gray-300 dark:border-gray-600 animate-fadeIn">
+          <ButtonGroup class="shadow-sm">
+            <Button
+              :label="`Générer le dossier (${selectedStudents.length})`"
+              icon="pi pi-folder-plus"
+              severity="info"
+              @click="handleBatchCreateFolders"
+              v-tooltip.bottom="'Créer le dossier local pour chaque élève sélectionné'"
+            />
+            <Button
+              :label="`Générer un mot de passe (${selectedStudents.length})`"
+              icon="pi pi-key"
+              severity="warn"
+              @click="handleBatchGeneratePasswords"
+              v-tooltip.bottom="'Générer un mot de passe français 6-10 lettres sans accent'"
+            />
+            <Button
+              :label="`Exporter le JS chiffré (${selectedStudents.length})`"
+              icon="pi pi-lock"
+              severity="help"
+              @click="handleBatchExportEncryptedJs"
+              v-tooltip.bottom="'Générer le fichier students.js avec sha256'"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              @click="handleBatchDeleteStudents"
+              v-tooltip.bottom="'Supprimer les élèves sélectionnés'"
+            />
+          </ButtonGroup>
         </div>
       </div>
 
@@ -332,6 +332,7 @@ import InputIcon from 'primevue/inputicon';
 import Dialog from 'primevue/dialog';
 import RadioButton from 'primevue/radiobutton';
 import SelectButton from 'primevue/selectbutton';
+import ButtonGroup from 'primevue/buttongroup';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 

@@ -105,13 +105,24 @@
           class="!bg-blue-600 !hover:bg-blue-700 !text-white font-bold px-5 py-2.5 shadow"
         />
 
-        <Button
-          label="Exporter les notes"
-          icon="pi pi-copy"
-          severity="secondary"
-          @click="handleExportGrades"
-          class="font-bold px-5 py-2.5 shadow-sm"
-        />
+        <ButtonGroup class="shadow-sm">
+          <Button
+            label="Exporter [élève, note]"
+            icon="pi pi-copy"
+            severity="secondary"
+            @click="handleExportStudentAndGrades"
+            class="font-bold py-2.5 px-4"
+            v-tooltip.top="'Copier [Nom\tNote] dans le presse-papier'"
+          />
+          <Button
+            label="Exporter [note]"
+            icon="pi pi-clipboard"
+            severity="secondary"
+            @click="handleExportGradesOnly"
+            class="font-bold py-2.5 px-4"
+            v-tooltip.top="'Copier uniquement la colonne des notes (lignes vides respectées)'"
+          />
+        </ButtonGroup>
       </div>
 
       <!-- Bouton tout à droite (révélé après export ou distribution) -->
@@ -134,6 +145,7 @@ import { ref, computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
+import ButtonGroup from 'primevue/buttongroup';
 import { useToast } from 'primevue/usetoast';
 
 import { nativeFs } from '../services/fs';
@@ -284,11 +296,14 @@ async function handleDistributeCopies() {
   }
 }
 
-async function handleExportGrades() {
+async function handleExportStudentAndGrades() {
   // Formatage 2 colonnes séparées par tabulation pour coller dans Notion, Numbers, LibreOffice Calc
   // "Nom de l'élève\tNote"
   const lines = recapRows.value.map((r) => {
-    const gradeStr = r.grade !== null && r.grade !== undefined ? r.grade.toString().replace('.', ',') : '';
+    const gradeStr =
+      r.grade !== null && r.grade !== undefined && r.grade !== ''
+        ? r.grade.toString().replace('.', ',')
+        : '';
     return `${r.name}\t${gradeStr}`;
   });
 
@@ -300,8 +315,39 @@ async function handleExportGrades() {
 
     toast.add({
       severity: 'success',
-      summary: 'Notes exportées',
-      detail: 'Les notes ont bien été copiées dans le presse-papier !',
+      summary: 'Export [élève, note]',
+      detail: 'Les noms et notes ont été copiés dans le presse-papier !',
+      life: 4000,
+    });
+  } catch (e) {
+    console.error('Erreur export presse-papier:', e);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur presse-papier',
+      detail: 'Impossible de copier dans le presse-papier.',
+      life: 3000,
+    });
+  }
+}
+
+async function handleExportGradesOnly() {
+  // Formatage 1 seule colonne de notes, en conservant les lignes vides pour les absents
+  const lines = recapRows.value.map((r) => {
+    return r.grade !== null && r.grade !== undefined && r.grade !== ''
+      ? r.grade.toString().replace('.', ',')
+      : '';
+  });
+
+  const text = lines.join('\n');
+
+  try {
+    await nativeFs.copyToClipboard(text);
+    showNewEvaluationButton.value = true;
+
+    toast.add({
+      severity: 'success',
+      summary: 'Export [note]',
+      detail: 'Les notes seules ont été copiées dans le presse-papier (lignes vides conservées) !',
       life: 4000,
     });
   } catch (e) {
