@@ -90,6 +90,33 @@ const jsContent = studentService.generateEncryptedJs(sampleStudents);
 assert(jsContent.startsWith('const Students = ['), 'JS content must declare const Students');
 assert(jsContent.includes(`"Niveau": "3"`), 'Niveau must be first char of classe');
 assert(jsContent.includes(sha256('martin.d')), 'Must include sha256 of login');
+// Test unique ID assignment & edit uniqueness
+const studentsWithId = [
+  { id: 1, name: 'DUPOND Martin', classe: '3e4', gender: 'M', login: '', password: '', isFolder: true },
+  { id: 2, name: 'DURAND Sophie', classe: '3e4', gender: 'F', login: '', password: '', isFolder: true },
+];
+
+// Test adding a 3rd student
+const maxId = studentsWithId.reduce((max, s) => Math.max(max, Number(s.id) || 0), 0);
+assert.strictEqual(maxId, 2);
+const student3 = { id: maxId + 1, name: 'LECLERC Thomas', classe: '4e2', gender: 'M', login: '', password: '', isFolder: false };
+studentsWithId.push(student3);
+assert.strictEqual(studentsWithId.length, 3);
+assert.strictEqual(student3.id, 3);
+
+// Test editing student #2 does not alter student #1 or #3
+const editTarget = studentsWithId.find((s) => s.id === 2);
+assert.strictEqual(editTarget.name, 'DURAND Sophie');
+const editIdx = studentsWithId.findIndex((s) => s.id === 2);
+studentsWithId[editIdx] = { ...studentsWithId[editIdx], login: 'sophie.durand', name: 'DURAND-PETIT Sophie' };
+assert.strictEqual(studentsWithId[0].name, 'DUPOND Martin');
+assert.strictEqual(studentsWithId[0].id, 1);
+assert.strictEqual(studentsWithId[1].name, 'DURAND-PETIT Sophie');
+assert.strictEqual(studentsWithId[1].login, 'sophie.durand');
+assert.strictEqual(studentsWithId[1].id, 2);
+assert.strictEqual(studentsWithId[2].name, 'LECLERC Thomas');
+assert.strictEqual(studentsWithId[2].id, 3);
+
 console.log('  ✅ studentService passed\n');
 
 // 6. Tests pdfService (deducing pages per copy & splitting)

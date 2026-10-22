@@ -143,10 +143,10 @@ async function loadAppData() {
       await studentService.ensureSourceStructure(sourceFolder.value);
 
       const loaded = await studentService.loadStudents(sourceFolder.value);
-      // Assigner une clé unique loginKey
+      // Assigner un ID unique permanent
       students.value = loaded.map((s, idx) => ({
         ...s,
-        loginKey: s.login || `st_${idx}_${s.name}`,
+        id: s.id !== undefined && s.id !== null ? Number(s.id) : idx + 1,
       }));
 
       availableClasses.value = await studentService.getAvailableClasses(
@@ -239,12 +239,15 @@ async function handleImportStudentsFromCsv(newStudents) {
     const existingMap = new Map();
     existing.forEach((s) => existingMap.set(`${s.classe}__${s.name}`.toLowerCase(), s));
 
+    let maxId = existing.reduce((max, s) => Math.max(max, Number(s.id) || 0), 0);
+
     for (const ns of newStudents) {
       const key = `${ns.classe}__${ns.name}`.toLowerCase();
       if (!existingMap.has(key)) {
+        maxId += 1;
         existing.push({
           ...ns,
-          loginKey: ns.login || `st_${Date.now()}_${ns.name}`,
+          id: maxId,
           isFolder: false,
         });
       }
@@ -272,10 +275,18 @@ async function handleImportStudentsFromCsv(newStudents) {
 }
 
 async function handleUpdateStudents(updatedList) {
-  students.value = updatedList;
+  let maxId = 0;
+  const listWithIds = updatedList.map((s, idx) => {
+    let id = s.id !== undefined && s.id !== null && !isNaN(Number(s.id)) ? Number(s.id) : (maxId + 1);
+    if (id <= maxId) id = maxId + 1;
+    maxId = Math.max(maxId, id);
+    return { ...s, id };
+  });
+
+  students.value = listWithIds;
   if (sourceFolder.value) {
     try {
-      await studentService.saveStudents(sourceFolder.value, updatedList);
+      await studentService.saveStudents(sourceFolder.value, listWithIds);
       availableClasses.value = await studentService.getAvailableClasses(
         sourceFolder.value,
         students.value

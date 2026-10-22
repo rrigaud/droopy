@@ -75,8 +75,18 @@ export const studentService = {
       const parsed = JSON.parse(raw);
       const list = Array.isArray(parsed) ? parsed : parsed.students || [];
 
-      // Vérifie pour chaque élève si son dossier local existe
-      for (const s of list) {
+      // Vérifie pour chaque élève si son dossier local existe et attribue un ID unique
+      let maxId = 0;
+      for (let i = 0; i < list.length; i++) {
+        const s = list[i];
+        if (s.id !== undefined && s.id !== null && !isNaN(Number(s.id)) && Number(s.id) > 0) {
+          s.id = Number(s.id);
+          if (s.id > maxId) maxId = s.id;
+        } else {
+          maxId += 1;
+          s.id = maxId;
+        }
+
         if (!s.name || !s.classe) {
           s.isFolder = false;
           continue;
@@ -99,15 +109,25 @@ export const studentService = {
     if (!sourceFolder) throw new Error('Dossier Source non défini');
     const filePath = this.getStudentsFilePath(sourceFolder);
 
-    // Nettoyage de la structure pour le stockage JSON lisible
-    const cleanList = students.map((s) => ({
-      name: sanitizeFolderName(s.name),
-      classe: s.classe ? s.classe.toString().trim() : '',
-      gender: s.gender === 'F' ? 'F' : 'M',
-      login: s.login || '',
-      password: s.password || '',
-      urlDropbox: s.urlDropbox || s['dropbox-url'] || '',
-    }));
+    // Nettoyage de la structure pour le stockage JSON lisible avec ID unique garanti
+    let maxId = 0;
+    const cleanList = students.map((s, idx) => {
+      let id = s.id !== undefined && s.id !== null && !isNaN(Number(s.id)) && Number(s.id) > 0
+        ? Number(s.id)
+        : maxId + 1;
+      if (id <= maxId) id = maxId + 1;
+      maxId = Math.max(maxId, id);
+
+      return {
+        id,
+        name: sanitizeFolderName(s.name),
+        classe: s.classe ? s.classe.toString().trim() : '',
+        gender: s.gender === 'F' ? 'F' : 'M',
+        login: s.login || '',
+        password: s.password || '',
+        urlDropbox: s.urlDropbox || s['dropbox-url'] || '',
+      };
+    });
 
     const jsonStr = JSON.stringify(cleanList, null, 2);
     await nativeFs.writeTextFile(filePath, jsonStr);

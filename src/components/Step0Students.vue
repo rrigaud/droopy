@@ -77,10 +77,10 @@
       <DataTable
         :value="students"
         v-model:selection="selectedStudents"
-        dataKey="loginKey"
+        dataKey="id"
         v-model:filters="filters"
         filterDisplay="menu"
-        :globalFilterFields="['classe', 'name', 'login', 'urlDropbox']"
+        :globalFilterFields="['id', 'classe', 'name', 'login', 'urlDropbox']"
         scrollable
         scrollHeight="flex"
         stripedRows
@@ -120,6 +120,14 @@
 
         <!-- Colonnes -->
         <Column selectionMode="multiple" headerStyle="width: 3rem" />
+
+        <Column field="id" header="#" sortable style="width: 4rem; text-align: center">
+          <template #body="{ data }">
+            <span class="font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">
+              {{ data.id }}
+            </span>
+          </template>
+        </Column>
 
         <Column field="classe" header="Classe" sortable style="width: 8rem">
           <template #body="{ data }">
@@ -225,7 +233,7 @@
     <Dialog
       v-model:visible="studentDialogVisible"
       modal
-      :header="isEditingStudent ? 'Modifier un élève' : 'Ajouter un élève'"
+      :header="isEditingStudent ? `Modifier l'élève #${editingOriginalStudent?.id || ''}` : 'Ajouter un élève'"
       :style="{ width: '450px' }"
       class="p-fluid"
     >
@@ -402,7 +410,7 @@ async function saveStudentForm() {
 
   if (isEditingStudent.value && editingOriginalStudent.value) {
     const idx = updatedList.findIndex(
-      (s) => s.loginKey === editingOriginalStudent.value.loginKey
+      (s) => s.id === editingOriginalStudent.value.id
     );
     if (idx !== -1) {
       updatedList[idx] = {
@@ -416,7 +424,9 @@ async function saveStudentForm() {
       };
     }
   } else {
+    const maxId = updatedList.reduce((max, s) => Math.max(max, Number(s.id) || 0), 0);
     updatedList.push({
+      id: maxId + 1,
       classe: studentForm.value.classe.trim(),
       name: cleanedName,
       gender: studentForm.value.gender,
@@ -446,10 +456,10 @@ function confirmDeleteStudent(student) {
     acceptClass: 'p-button-danger',
     accept: () => {
       const updatedList = props.students.filter(
-        (s) => s.loginKey !== student.loginKey
+        (s) => s.id !== student.id
       );
       selectedStudents.value = selectedStudents.value.filter(
-        (s) => s.loginKey !== student.loginKey
+        (s) => s.id !== student.id
       );
       emit('update-students', updatedList);
       toast.add({
@@ -481,9 +491,9 @@ async function handleBatchCreateFolders() {
     );
 
     // Met à jour la liste des élèves en mémoire
+    const selectedIds = new Set(selectedStudents.value.map((s) => s.id));
     const updatedList = props.students.map((s) => {
-      const match = selectedStudents.value.find((sel) => sel.loginKey === s.loginKey);
-      if (match) s.isFolder = true;
+      if (selectedIds.has(s.id)) s.isFolder = true;
       return s;
     });
 
@@ -549,8 +559,8 @@ function handleBatchDeleteStudents() {
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: () => {
-      const selectedKeys = new Set(selectedStudents.value.map((s) => s.loginKey));
-      const updatedList = props.students.filter((s) => !selectedKeys.has(s.loginKey));
+      const selectedIds = new Set(selectedStudents.value.map((s) => s.id));
+      const updatedList = props.students.filter((s) => !selectedIds.has(s.id));
       selectedStudents.value = [];
       emit('update-students', updatedList);
       toast.add({
