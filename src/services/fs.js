@@ -172,13 +172,28 @@ export const nativeFs = {
     localStorage.removeItem(`dir:${path}`);
   },
 
-  async copyToClipboard(text) {
+  async copyToClipboard(text, html = null) {
     if (isTauri()) {
       try {
-        await invoke('copy_to_clipboard', { text });
+        await invoke('copy_to_clipboard', { text, html: html || null });
         return;
       } catch (e) {
         console.warn('Native clipboard failed, falling back to navigator.clipboard:', e);
+      }
+    }
+    if (navigator?.clipboard?.write && html) {
+      try {
+        const textBlob = new Blob([text], { type: 'text/plain' });
+        const htmlBlob = new Blob([html], { type: 'text/html' });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': textBlob,
+            'text/html': htmlBlob,
+          }),
+        ]);
+        return;
+      } catch (err) {
+        console.warn('HTML clipboard write failed, fallback to writeText:', err);
       }
     }
     if (navigator?.clipboard?.writeText) {

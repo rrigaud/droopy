@@ -166,9 +166,13 @@ fn delete_dir(path: String) -> Result<(), String> {
 }
 
 #[command]
-fn copy_to_clipboard(text: String) -> Result<(), String> {
+fn copy_to_clipboard(text: String, html: Option<String>) -> Result<(), String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| format!("Presse-papier indisponible: {}", e))?;
-    clipboard.set_text(text).map_err(|e| format!("Erreur écriture presse-papier: {}", e))
+    if let Some(h) = html {
+        clipboard.set_html(h, Some(text)).map_err(|e| format!("Erreur écriture presse-papier HTML: {}", e))
+    } else {
+        clipboard.set_text(text).map_err(|e| format!("Erreur écriture presse-papier: {}", e))
+    }
 }
 
 fn main() {

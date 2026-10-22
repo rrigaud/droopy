@@ -297,20 +297,34 @@ async function handleDistributeCopies() {
 }
 
 async function handleExportStudentAndGrades() {
-  // Formatage 2 colonnes séparées par tabulation pour coller dans Notion, Numbers, LibreOffice Calc
-  // "Nom de l'élève\tNote"
-  const lines = recapRows.value.map((r) => {
+  // Formatage texte brut (TSV) pour tableurs classiques
+  const tsvLines = recapRows.value.map((r) => {
     const gradeStr =
       r.grade !== null && r.grade !== undefined && r.grade !== ''
         ? r.grade.toString().replace('.', ',')
         : '';
     return `${r.name}\t${gradeStr}`;
   });
+  const tsvText = tsvLines.join('\n');
 
-  const tsvText = lines.join('\n');
+  // Formatage HTML <table> pour Notion et éditeurs riches
+  const htmlRows = recapRows.value
+    .map((r) => {
+      const gradeStr =
+        r.grade !== null && r.grade !== undefined && r.grade !== ''
+          ? r.grade.toString().replace('.', ',')
+          : '';
+      const safeName = (r.name || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return `<tr><td>${safeName}</td><td>${gradeStr}</td></tr>`;
+    })
+    .join('');
+  const htmlTable = `<table><tbody>${htmlRows}</tbody></table>`;
 
   try {
-    await nativeFs.copyToClipboard(tsvText);
+    await nativeFs.copyToClipboard(tsvText, htmlTable);
     showNewEvaluationButton.value = true;
 
     toast.add({
@@ -331,17 +345,28 @@ async function handleExportStudentAndGrades() {
 }
 
 async function handleExportGradesOnly() {
-  // Formatage 1 seule colonne de notes, en conservant les lignes vides pour les absents
+  // Formatage texte brut (1 note par ligne avec lignes vides pour absents)
   const lines = recapRows.value.map((r) => {
     return r.grade !== null && r.grade !== undefined && r.grade !== ''
       ? r.grade.toString().replace('.', ',')
       : '';
   });
-
   const text = lines.join('\n');
 
+  // Formatage HTML <table> pour Notion et éditeurs riches
+  const htmlRows = recapRows.value
+    .map((r) => {
+      const gradeStr =
+        r.grade !== null && r.grade !== undefined && r.grade !== ''
+          ? r.grade.toString().replace('.', ',')
+          : '';
+      return `<tr><td>${gradeStr}</td></tr>`;
+    })
+    .join('');
+  const htmlTable = `<table><tbody>${htmlRows}</tbody></table>`;
+
   try {
-    await nativeFs.copyToClipboard(text);
+    await nativeFs.copyToClipboard(text, htmlTable);
     showNewEvaluationButton.value = true;
 
     toast.add({
