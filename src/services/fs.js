@@ -9,8 +9,14 @@ export const nativeFs = {
     if (isTauri()) {
       return await invoke('select_folder', { defaultPath: defaultPath || null });
     }
-    // Web fallback prompt
     return window.prompt('Dossier Source (chemin local absolu):', defaultPath || '/Users/raph/Documents/Source Droopy');
+  },
+
+  async getDropboxRoot() {
+    if (isTauri()) {
+      return await invoke('get_dropbox_root');
+    }
+    return null;
   },
 
   async selectFile(title = '', filterName = '', filterExts = [], defaultPath = '') {
@@ -43,6 +49,31 @@ export const nativeFs = {
       };
       input.click();
     });
+  },
+
+  async saveFile(title = '', defaultName = '', filterName = '', filterExts = [], defaultPath = '') {
+    if (isTauri()) {
+      return await invoke('save_file', {
+        title: title || null,
+        defaultName: defaultName || null,
+        filterName: filterName || null,
+        filterExts: filterExts.length ? filterExts : null,
+        defaultPath: defaultPath || null,
+      });
+    }
+    return null;
+  },
+
+  downloadBlob(filename, content, mimeType = 'text/plain') {
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   async readTextFile(path) {
@@ -206,5 +237,12 @@ export const nativeFs = {
     textArea.select();
     document.execCommand('copy');
     document.body.removeChild(textArea);
+  },
+
+  async openPath(path) {
+    if (isTauri()) {
+      return await invoke('open_path', { path });
+    }
+    console.log('openPath (web fallback):', path);
   },
 };

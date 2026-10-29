@@ -29,6 +29,8 @@
         @open-csv-picker="handleOpenCsvPicker"
         @go-step-1="goToStep1"
         @update-students="handleUpdateStudents"
+        @sync-folders-shares="handleSyncFoldersShares"
+        @generate-portal="handleGeneratePortal"
       />
 
       <!-- Step 1: Chargement des copies -->
@@ -72,6 +74,72 @@
       :csvText="currentCsvText"
       @import-students="handleImportStudentsFromCsv"
     />
+
+    <!-- Boîte de dialogue de succès : Génération Portail Web -->
+    <Dialog
+      v-model:visible="portalSuccessVisible"
+      modal
+      :style="{ width: '500px' }"
+      :closable="true"
+    >
+      <template #header>
+        <div class="flex items-center gap-2 text-base font-bold text-gray-800 dark:text-gray-100">
+          <i class="pi pi-globe text-purple-600 text-lg" />
+          <span>Portail Web généré</span>
+        </div>
+      </template>
+
+      <div class="py-2 text-sm text-gray-700 dark:text-gray-200 space-y-4">
+        <!-- En-tête avec check vert et détails espacés -->
+        <div class="flex items-start gap-3.5">
+          <i class="pi pi-check-circle text-emerald-500 text-3xl shrink-0 mt-0.5" />
+          <div class="space-y-2">
+            <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">
+              Le portail web a bien été généré avec succès !
+            </p>
+            <div class="space-y-1.5 text-xs text-gray-600 dark:text-gray-300">
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
+                <span><strong>{{ portalSuccessData.studentCount }}</strong> élève(s) chiffré(s) (AES-GCM 256 bits)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <span>Thème graphique : <strong>{{ portalThemeLabel }}</strong></span>
+              </div>
+              <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 font-mono text-[11px] truncate max-w-[360px]" :title="portalSuccessData.path">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                <span class="truncate">Dossier : {{ portalSuccessData.folderName }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saut de ligne / séparation et question Finder -->
+        <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+          <p class="text-xs text-gray-800 dark:text-gray-200 font-medium">
+            Souhaitez-vous ouvrir ce dossier dans le Finder pour le mettre en ligne ?
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2 pt-2">
+          <Button
+            label="Fermer"
+            severity="secondary"
+            class="p-button-outlined text-xs"
+            @click="portalSuccessVisible = false"
+          />
+          <Button
+            label="Ouvrir dans le Finder"
+            icon="pi pi-folder-open"
+            class="!bg-emerald-600 !hover:bg-emerald-700 !text-white !border-emerald-600 font-semibold text-xs shadow-sm"
+            @click="handleOpenPortalInFinder"
+            autofocus
+          />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -79,7 +147,10 @@
 import { ref, computed, onMounted } from 'vue';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 
 import HeaderBar from './components/HeaderBar.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
@@ -92,17 +163,48 @@ import Step3Distribution from './components/Step3Distribution.vue';
 import { storage } from './services/storage';
 import { studentService } from './services/studentService';
 import { nativeFs } from './services/fs';
+import { generateRandomPassword } from './services/dictionary';
+import { dropboxService } from './services/dropboxService';
+import { settingsService } from './services/settingsService';
+import { portalGeneratorService } from './services/portalGeneratorService';
+import { sanitizeFolderName } from './services/accentUtils';
 
 const toast = useToast();
+const confirm = useConfirm();
 
 const activeStep = ref(0);
 const sourceFolder = ref(storage.getSourceFolder());
 const settingsVisible = ref(false);
 const csvImportVisible = ref(false);
 const currentCsvText = ref('');
+const hasPromptedUrlCleanup = ref(false);
 
 const students = ref([]);
 const availableClasses = ref([]);
+
+// Modal Succès Portail Web
+const portalSuccessVisible = ref(false);
+const portalSuccessData = ref({
+  path: '',
+  folderName: 'Portail-Web',
+  studentCount: 0,
+  portalTheme: 'emeraude',
+});
+
+const portalThemeLabel = computed(() => {
+  const t = portalSuccessData.value.portalTheme;
+  if (t === 'emeraude') return 'Émeraude';
+  if (t === 'sombre') return 'Sombre';
+  if (t === 'clair') return 'Clair';
+  return t;
+});
+
+async function handleOpenPortalInFinder() {
+  portalSuccessVisible.value = false;
+  if (portalSuccessData.value.path) {
+    await nativeFs.openPath(portalSuccessData.value.path);
+  }
+}
 
 // Évaluation en cours
 const currentEvaluationInfo = ref({});
@@ -141,13 +243,59 @@ async function loadAppData() {
     try {
       // Vérifier et créer l'arborescence requise dans le dossier Source
       await studentService.ensureSourceStructure(sourceFolder.value);
+      // Initialise ou charge les préférences du portail pour ce dossier Source
+      await settingsService.loadSettings(sourceFolder.value);
 
       const loaded = await studentService.loadStudents(sourceFolder.value);
       // Assigner un ID unique permanent
-      students.value = loaded.map((s, idx) => ({
+      const mapped = loaded.map((s, idx) => ({
         ...s,
         id: s.id !== undefined && s.id !== null ? Number(s.id) : idx + 1,
       }));
+
+      // Vérification du statut Dropbox réel
+      const checked = await dropboxService.checkStudentsDropboxStatus(sourceFolder.value, mapped);
+      students.value = checked;
+
+      // Détection des URLs orphelines (ex: URL présente alors que le dossier n'existe pas en ligne)
+      const orphanStudents = checked.filter((s) => s.urlDropbox && !s.isDropboxFolder);
+
+      if (orphanStudents.length > 0 && !hasPromptedUrlCleanup.value) {
+        hasPromptedUrlCleanup.value = true;
+        confirm.require({
+          message: `${orphanStudents.length} élève(s) possèdent une adresse URL Dropbox qui ne correspond à aucun dossier valide en ligne (ou votre dossier Source actuel est hors de Dropbox). Souhaitez-vous supprimer ces URLs non valides ?`,
+          header: 'Nettoyage des URLs Dropbox',
+          icon: 'pi pi-exclamation-triangle',
+          acceptLabel: 'Supprimer les URLs',
+          rejectLabel: 'Conserver (pour tests)',
+          acceptClass: 'p-button-danger',
+          rejectClass: 'p-button-secondary p-button-outlined',
+          accept: async () => {
+            const cleaned = checked.map((s) => {
+              if (s.urlDropbox && !s.isDropboxFolder) {
+                return { ...s, urlDropbox: '', isShared: false };
+              }
+              return s;
+            });
+            students.value = cleaned;
+            await studentService.saveStudents(sourceFolder.value, cleaned);
+            toast.add({
+              severity: 'success',
+              summary: 'Nettoyage terminé',
+              detail: `${orphanStudents.length} URL(s) Dropbox factice(s) ou orpheline(s) ont été supprimées.`,
+              life: 3500,
+            });
+          },
+          reject: () => {
+            toast.add({
+              severity: 'info',
+              summary: 'URLs conservées',
+              detail: 'Les URLs existantes ont été conservées pour vos tests.',
+              life: 3000,
+            });
+          },
+        });
+      }
 
       availableClasses.value = await studentService.getAvailableClasses(
         sourceFolder.value,
@@ -176,6 +324,7 @@ async function loadAppData() {
 
 async function handleSourceFolderChanged(newFolder) {
   sourceFolder.value = newFolder;
+  hasPromptedUrlCleanup.value = false;
   await loadAppData();
   toast.add({
     severity: 'success',
@@ -294,6 +443,159 @@ async function handleUpdateStudents(updatedList) {
     } catch (e) {
       console.error('Erreur sauvegarde students:', e);
     }
+  }
+}
+
+async function handleSyncFoldersShares() {
+  if (!sourceFolder.value) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Dossier Source requis',
+      detail: 'Configurez d\'abord le dossier Source dans les Paramètres.',
+      life: 3000,
+    });
+    return;
+  }
+
+  try {
+    let createdLocalFolders = 0;
+    let generatedPasswords = 0;
+    let createdDropboxShares = 0;
+
+    const updated = [...students.value];
+
+    // 1. Synchronisation locale (dossiers physiques & mots de passe manquants)
+    for (const s of updated) {
+      if (!s.isFolder) {
+        await studentService.createFolderForStudent(sourceFolder.value, s);
+        s.isFolder = true;
+        createdLocalFolders++;
+      }
+      if (!s.password) {
+        s.password = generateRandomPassword();
+        generatedPasswords++;
+      }
+    }
+
+    // 2. Synchronisation Dropbox (uniquement si connecté ET si dossier Source dans Dropbox)
+    const isConnected = storage.isDropboxConnected();
+    const sourceInfo = await dropboxService.getSourceFolderDropboxInfo(sourceFolder.value);
+
+    if (isConnected && sourceInfo.inDropbox) {
+      const elevesDropboxPath = `${sourceInfo.relativePath}/Evaluations/Eleves`;
+
+      for (let i = 0; i < updated.length; i++) {
+        const s = updated[i];
+        if (!s.urlDropbox || !s.urlDropbox.startsWith('https://www.dropbox.com/')) {
+          const cleanClass = sanitizeFolderName(s.classe || '');
+          const cleanName = sanitizeFolderName(s.name || '');
+          const targetFolder = `${elevesDropboxPath}/${cleanClass}/${cleanName}`;
+
+          try {
+            const url = await dropboxService.getOrCreateSharedLink(targetFolder);
+            if (url) {
+              s.urlDropbox = url;
+              s.isShared = true;
+              s.isDropboxFolder = true;
+              createdDropboxShares++;
+
+              // Mise à jour visuelle en direct dans le tableau
+              students.value = [...updated];
+
+              // Pause de 200ms entre les requêtes pour ne pas surcharger Dropbox
+              await new Promise((r) => setTimeout(r, 200));
+            }
+          } catch (err) {
+            console.warn(`Lien Dropbox non créé pour ${s.name}:`, err);
+          }
+        }
+      }
+    }
+
+    // Sauvegarde persistante dans eleves.json
+    await studentService.saveStudents(sourceFolder.value, updated);
+    students.value = [...updated];
+
+    // Rapport d'état selon la configuration
+    if (!isConnected) {
+      toast.add({
+        severity: 'info',
+        summary: 'Synchronisation locale réussie',
+        detail: `${createdLocalFolders} dossier(s) créés, ${generatedPasswords} mot(s) de passe. Connectez Dropbox dans les Paramètres pour activer les partages.`,
+        life: 5000,
+      });
+    } else if (!sourceInfo.inDropbox) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Dossier Source hors Dropbox',
+        detail: `${createdLocalFolders} dossier(s) locaux créés. Le dossier Source actuel n'étant pas dans votre Dropbox (${sourceInfo.dropboxRoot}), aucun partage en ligne n'a été créé.`,
+        life: 6000,
+      });
+    } else {
+      toast.add({
+        severity: 'success',
+        summary: 'Synchronisation complète terminée',
+        detail: `${createdLocalFolders} dossier(s) locaux, ${generatedPasswords} mot(s) de passe, ${createdDropboxShares} nouveau(x) partage(s) Dropbox activé(s).`,
+        life: 5000,
+      });
+    }
+  } catch (e) {
+    console.error('Erreur synchronisation:', e);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur synchronisation',
+      detail: e.message || 'Échec lors de la synchronisation.',
+      life: 4000,
+    });
+  }
+}
+
+async function handleGeneratePortal() {
+  if (!sourceFolder.value) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Dossier Source requis',
+      detail: 'Configurez d\'abord le dossier Source dans les Paramètres.',
+      life: 3000,
+    });
+    return;
+  }
+
+  if (!students.value.length) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Aucun élève',
+      detail: 'Importez ou ajoutez des élèves avant de générer le portail.',
+      life: 3000,
+    });
+    return;
+  }
+
+  try {
+    const res = await portalGeneratorService.generatePortal(sourceFolder.value, students.value);
+
+    portalSuccessData.value = {
+      path: res.path,
+      folderName: 'Portail-Web',
+      studentCount: res.studentCount,
+      portalTheme: res.portalTheme,
+    };
+    portalSuccessVisible.value = true;
+
+    toast.add({
+      severity: 'success',
+      summary: 'Portail Web généré',
+      detail: `${res.studentCount} élèves chiffrés. Dossier Portail-Web prêt.`,
+      life: 4000,
+    });
+  } catch (err) {
+    console.error('Erreur génération portail:', err);
+    toast.add({
+      severity: 'error',
+      summary: 'Échec de génération',
+      detail: err.message || 'Impossible de générer le portail Web.',
+      life: 5000,
+    });
   }
 }
 

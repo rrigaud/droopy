@@ -1,59 +1,48 @@
 <template>
-  <div class="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-    <!-- Top Action Bar -->
+  <div class="h-full flex flex-col p-4 space-y-3 overflow-hidden">
+    <!-- Bandeau 1: Actions Générales & Navigation (Toujours visible) -->
     <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- Importer un CSV -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- ButtonGroup : Importer un CSV + Ajouter un élève -->
+        <ButtonGroup class="shadow-sm">
+          <Button
+            label="Importer un CSV"
+            icon="pi pi-upload"
+            @click="$emit('open-csv-picker')"
+            class="p-button-outlined"
+            v-tooltip.bottom="'Importer ou fusionner un fichier CSV d\'élèves'"
+          />
+          <Button
+            label="Ajouter un élève"
+            icon="pi pi-user-plus"
+            @click="openAddStudentDialog"
+            class="p-button-outlined"
+            v-tooltip.bottom="'Créer manuellement une nouvelle fiche élève'"
+          />
+        </ButtonGroup>
+
+        <!-- Bouton séparé : Synchroniser les dossiers & partages -->
         <Button
-          label="Importer un CSV"
-          icon="pi pi-upload"
-          @click="$emit('open-csv-picker')"
+          label="Synchroniser les dossiers & partages"
+          icon="pi pi-sync"
+          severity="info"
           class="p-button-outlined"
+          @click="handleSyncFoldersAndShares"
+          v-tooltip.bottom="'Crée les dossiers locaux, mots de passe et partages manquants sans écraser l\'existant'"
         />
 
-        <!-- Ajouter un élève -->
+        <!-- Bouton séparé : Générer le portail de connexion -->
         <Button
-          label="Ajouter un élève"
-          icon="pi pi-user-plus"
-          @click="openAddStudentDialog"
+          label="Générer le portail de connexion"
+          icon="pi pi-globe"
+          severity="help"
           class="p-button-outlined"
+          @click="handleGeneratePortal"
+          v-tooltip.bottom="'Génère le dossier autonome Portail-Web prêt à être mis en ligne sur votre hébergement web'"
         />
-
-        <!-- Batch Actions (affichés si des lignes sont sélectionnées) -->
-        <div v-if="selectedStudents.length > 0" class="flex flex-wrap items-center pl-2 border-l border-gray-300 dark:border-gray-600 animate-fadeIn">
-          <ButtonGroup class="shadow-sm">
-            <Button
-              :label="`Générer le dossier (${selectedStudents.length})`"
-              icon="pi pi-folder-plus"
-              severity="info"
-              @click="handleBatchCreateFolders"
-              v-tooltip.bottom="'Créer le dossier local pour chaque élève sélectionné'"
-            />
-            <Button
-              :label="`Générer un mot de passe (${selectedStudents.length})`"
-              icon="pi pi-key"
-              severity="warn"
-              @click="handleBatchGeneratePasswords"
-              v-tooltip.bottom="'Générer un mot de passe français 6-10 lettres sans accent'"
-            />
-            <Button
-              :label="`Exporter le JS chiffré (${selectedStudents.length})`"
-              icon="pi pi-lock"
-              severity="help"
-              @click="handleBatchExportEncryptedJs"
-              v-tooltip.bottom="'Générer le fichier students.js avec sha256'"
-            />
-            <Button
-              icon="pi pi-trash"
-              severity="danger"
-              @click="handleBatchDeleteStudents"
-              v-tooltip.bottom="'Supprimer les élèves sélectionnés'"
-            />
-          </ButtonGroup>
-        </div>
       </div>
 
-      <!-- Right Action: Charger des copies (affiché si conditions remplies) -->
+      <!-- Right Action: Statut et Charger des copies -->
       <div class="flex items-center gap-2">
         <!-- Status badge info -->
         <div v-if="!isAllOk" class="text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
@@ -71,6 +60,94 @@
         />
       </div>
     </div>
+
+    <!-- Bandeau 2: Actions par Lots (Affiché juste au-dessous si des élèves sont sélectionnés) -->
+    <transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2 max-h-0 overflow-hidden"
+      enter-to-class="opacity-100 translate-y-0 max-h-24"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0 max-h-24"
+      leave-to-class="opacity-0 -translate-y-2 max-h-0 overflow-hidden"
+    >
+      <div
+        v-if="selectedStudents.length > 0"
+        class="flex flex-wrap items-center justify-between gap-3 bg-purple-50/60 dark:bg-purple-950/25 p-2.5 px-3 rounded-xl border border-purple-200 dark:border-purple-900/50 shadow-sm shrink-0"
+      >
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- ButtonGroup des Actions de Génération avec préfixe "Générer..." -->
+          <ButtonGroup class="shadow-sm">
+            <span
+              class="inline-flex items-center px-3.5 text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-700 select-none rounded-l-lg border-r-0"
+            >
+              Générer...
+            </span>
+            <Button
+              label="Les dossiers"
+              icon="pi pi-folder-plus"
+              severity="help"
+              class="p-button-outlined !border-purple-300 dark:!border-purple-700 !rounded-none"
+              @click="handleBatchCreateFolders"
+              v-tooltip.bottom="'Créer le dossier local pour chaque élève sélectionné'"
+            />
+            <Button
+              label="Les mots de passe"
+              icon="pi pi-key"
+              severity="help"
+              class="p-button-outlined !border-purple-300 dark:!border-purple-700 !rounded-none"
+              @click="handleBatchGeneratePasswords"
+              v-tooltip.bottom="'Générer un mot de passe pour les élèves sélectionnés'"
+            />
+            <Button
+              label="Les étiquettes Élèves"
+              icon="pi pi-id-card"
+              severity="help"
+              class="p-button-outlined !border-purple-300 dark:!border-purple-700 !rounded-none"
+              @click="handleBatchGenerateLabelsPdf"
+              v-tooltip.bottom="'PDF des étiquettes individuelles (2 colonnes) pour cahiers d\'élèves'"
+            />
+            <Button
+              label="Le tableau de connexion"
+              icon="pi pi-table"
+              severity="help"
+              class="p-button-outlined !border-purple-300 dark:!border-purple-700 !rounded-none"
+              @click="handleBatchGenerateTablePdf"
+              v-tooltip.bottom="'PDF récapitulatif en tableau classé par classe et nom pour le professeur'"
+            />
+            <Button
+              label="Un CSV"
+              icon="pi pi-file-export"
+              severity="help"
+              class="p-button-outlined !border-purple-300 dark:!border-purple-700 !rounded-r-lg"
+              @click="handleBatchExportCsv"
+              v-tooltip.bottom="'Exporter un fichier CSV des données des élèves sélectionnés'"
+            />
+          </ButtonGroup>
+
+          <!-- Bouton séparé : Supprimer -->
+          <Button
+            :label="`Supprimer (${selectedStudents.length})`"
+            icon="pi pi-trash"
+            severity="danger"
+            class="p-button-outlined shadow-sm"
+            @click="handleBatchDeleteStudents"
+            v-tooltip.bottom="'Supprimer les élèves sélectionnés'"
+          />
+        </div>
+
+        <!-- Droite : Indicateur et bouton désélectionner -->
+        <div class="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300">
+          <span class="font-medium">{{ selectedStudents.length }} sélectionné(s)</span>
+          <button
+            type="button"
+            @click="selectedStudents = []"
+            class="text-purple-600 dark:text-purple-400 hover:underline hover:text-purple-800 dark:hover:text-purple-200 ml-1"
+          >
+            Tout désélectionner
+          </button>
+        </div>
+      </div>
+    </transition>
 
     <!-- Main DataTable -->
     <div class="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
@@ -195,9 +272,9 @@
           </template>
         </Column>
 
-        <Column field="isFolder" header="Dossier local" sortable style="width: 8rem; text-align: center">
+        <Column field="isFolder" header="Dossier local" sortable style="width: 7.5rem; text-align: center">
           <template #body="{ data }">
-            <div class="flex justify-center" :title="data.isFolder ? 'Dossier créé' : 'Dossier manquant'">
+            <div class="flex justify-center" :title="data.isFolder ? 'Dossier créé sur le Mac' : 'Dossier manquant sur le Mac'">
               <i
                 v-if="data.isFolder"
                 class="pi pi-check-circle text-emerald-600 dark:text-emerald-400 text-lg"
@@ -210,18 +287,55 @@
           </template>
         </Column>
 
-        <Column field="urlDropbox" header="Dossier Dropbox en ligne" sortable>
+        <Column field="isDropboxFolder" header="Dossier Dropbox" sortable style="width: 8.5rem; text-align: center">
+          <template #body="{ data }">
+            <div
+              class="flex justify-center"
+              :title="data.dropboxStatusReason || (data.isDropboxFolder ? 'Dossier trouvé sur Dropbox' : 'Dossier non trouvé sur Dropbox')"
+            >
+              <i
+                v-if="data.isDropboxFolder"
+                class="pi pi-check-circle text-emerald-600 dark:text-emerald-400 text-lg"
+              />
+              <i
+                v-else
+                class="pi pi-times-circle text-gray-300 dark:text-gray-600 text-lg"
+              />
+            </div>
+          </template>
+        </Column>
+
+        <Column field="isShared" header="Partage activé" sortable style="width: 8rem; text-align: center">
+          <template #body="{ data }">
+            <div
+              class="flex justify-center"
+              :title="data.isShared ? 'Partage activé en lecture seule' : 'Partage non activé'"
+            >
+              <i
+                v-if="data.isShared"
+                class="pi pi-check-circle text-emerald-600 dark:text-emerald-400 text-lg"
+              />
+              <i
+                v-else
+                class="pi pi-times-circle text-gray-300 dark:text-gray-600 text-lg"
+              />
+            </div>
+          </template>
+        </Column>
+
+        <Column field="urlDropbox" header="URL Dropbox" sortable>
           <template #body="{ data }">
             <a
               v-if="data.urlDropbox"
               :href="data.urlDropbox"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 text-xs truncate max-w-xs block hover:underline"
+              class="text-blue-600 dark:text-blue-400 text-xs truncate max-w-[200px] inline-flex items-center gap-1 hover:underline font-mono"
               :title="data.urlDropbox"
             >
-              <i class="pi pi-external-link mr-1 text-[10px]" />{{ data.urlDropbox }}
+              <i class="pi pi-external-link text-[10px]" />
+              <span class="truncate">{{ data.urlDropbox }}</span>
             </a>
-            <span v-else class="text-gray-400 text-xs italic">Non renseigné</span>
+            <span v-else class="text-gray-400 text-xs italic">Non généré</span>
           </template>
         </Column>
 
@@ -337,8 +451,10 @@ import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 
 import { studentService } from '../services/studentService';
+import { pdfService } from '../services/pdfService';
+import { storage } from '../services/storage';
 import { generateRandomPassword } from '../services/dictionary';
-import { nativeFs } from '../services/fs';
+import { nativeFs, isTauri } from '../services/fs';
 import { sanitizeFolderName } from '../services/accentUtils';
 
 const props = defineProps({
@@ -360,6 +476,8 @@ const emit = defineEmits([
   'open-csv-picker',
   'go-step-1',
   'update-students',
+  'sync-folders-shares',
+  'generate-portal',
 ]);
 
 const toast = useToast();
@@ -606,6 +724,148 @@ function handleBatchGeneratePasswords() {
     detail: `Nouveaux mots de passe attribués à ${selectedStudents.value.length} élève(s).`,
     life: 3000,
   });
+}
+
+async function handleBatchExportCsv() {
+  if (!selectedStudents.value.length) return;
+  const csvText = studentService.exportCsv(selectedStudents.value);
+  const defaultName = `eleves_export_${new Date().toISOString().slice(0, 10)}.csv`;
+
+  try {
+    const savePath = await nativeFs.saveFile(
+      'Exporter les élèves en CSV',
+      defaultName,
+      'Fichiers CSV (*.csv)',
+      ['csv'],
+      props.sourceFolder || ''
+    );
+
+    if (savePath) {
+      await nativeFs.writeTextFile(savePath, csvText);
+      toast.add({
+        severity: 'success',
+        summary: 'Export CSV réussi',
+        detail: `${selectedStudents.value.length} élève(s) exporté(s) dans ${savePath.split('/').pop()}`,
+        life: 3500,
+      });
+    } else if (!isTauri()) {
+      nativeFs.downloadBlob(defaultName, csvText, 'text/csv;charset=utf-8;');
+      toast.add({
+        severity: 'success',
+        summary: 'Téléchargement lancé',
+        detail: `${selectedStudents.value.length} élève(s) exporté(s).`,
+        life: 3000,
+      });
+    }
+  } catch (e) {
+    console.error('Erreur export CSV:', e);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur export',
+      detail: e.message || 'Impossible d\'exporter le fichier CSV.',
+      life: 4000,
+    });
+  }
+}
+
+async function handleBatchGenerateLabelsPdf() {
+  if (!selectedStudents.value.length) return;
+  const portalUrl = storage.getPortalUrl();
+  const defaultName = `etiquettes_eleves_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+  try {
+    const pdfBytes = await pdfService.generateLabelsPdf(selectedStudents.value, portalUrl);
+    const b64 = pdfService.uint8ArrayToBase64(pdfBytes);
+
+    const savePath = await nativeFs.saveFile(
+      'Enregistrer les étiquettes élèves (PDF)',
+      defaultName,
+      'Documents PDF (*.pdf)',
+      ['pdf'],
+      props.sourceFolder || ''
+    );
+
+    if (savePath) {
+      await nativeFs.writeFileBase64(savePath, b64);
+      toast.add({
+        severity: 'success',
+        summary: 'Étiquettes générées',
+        detail: `Document PDF (${selectedStudents.value.length} étiquettes) enregistré.`,
+        life: 3500,
+      });
+    } else if (!isTauri()) {
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      nativeFs.downloadBlob(defaultName, blob, 'application/pdf');
+      toast.add({
+        severity: 'success',
+        summary: 'Téléchargement lancé',
+        detail: `${selectedStudents.value.length} étiquettes élèves prêtes à être imprimées.`,
+        life: 3000,
+      });
+    }
+  } catch (e) {
+    console.error('Erreur génération étiquettes PDF:', e);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur PDF',
+      detail: e.message || 'Impossible de générer les étiquettes élèves.',
+      life: 4000,
+    });
+  }
+}
+
+async function handleBatchGenerateTablePdf() {
+  if (!selectedStudents.value.length) return;
+  const portalUrl = storage.getPortalUrl();
+  const defaultName = `tableau_connexion_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+  try {
+    const pdfBytes = await pdfService.generateConnectionTablePdf(selectedStudents.value, portalUrl);
+    const b64 = pdfService.uint8ArrayToBase64(pdfBytes);
+
+    const savePath = await nativeFs.saveFile(
+      'Enregistrer le tableau de connexion (PDF)',
+      defaultName,
+      'Documents PDF (*.pdf)',
+      ['pdf'],
+      props.sourceFolder || ''
+    );
+
+    if (savePath) {
+      await nativeFs.writeFileBase64(savePath, b64);
+      toast.add({
+        severity: 'success',
+        summary: 'Tableau généré',
+        detail: `Tableau de connexion (${selectedStudents.value.length} élèves) enregistré.`,
+        life: 3500,
+      });
+    } else if (!isTauri()) {
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      nativeFs.downloadBlob(defaultName, blob, 'application/pdf');
+      toast.add({
+        severity: 'success',
+        summary: 'Téléchargement lancé',
+        detail: `Tableau de connexion (${selectedStudents.value.length} élèves) prêt.`,
+        life: 3000,
+      });
+    }
+  } catch (e) {
+    console.error('Erreur génération tableau PDF:', e);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur PDF',
+      detail: e.message || 'Impossible de générer le tableau de connexion.',
+      life: 4000,
+    });
+  }
+}
+
+function handleSyncFoldersAndShares() {
+  emit('sync-folders-shares');
+}
+
+function handleGeneratePortal() {
+  emit('generate-portal');
 }
 
 async function handleBatchExportEncryptedJs() {

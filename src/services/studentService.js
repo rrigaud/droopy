@@ -166,6 +166,22 @@ export const studentService = {
   },
 
   /**
+   * Exporte une liste d'élèves sous forme de texte CSV simple
+   */
+  exportCsv(students) {
+    const headers = ['Classe', 'Nom', 'Sexe', 'Login', 'Mot de passe', 'URL Dropbox'];
+    const rows = students.map((s) => [
+      `"${(s.classe || '').replace(/"/g, '""')}"`,
+      `"${(s.name || '').replace(/"/g, '""')}"`,
+      `"${(s.gender || 'M').replace(/"/g, '""')}"`,
+      `"${(s.login || '').replace(/"/g, '""')}"`,
+      `"${(s.password || '').replace(/"/g, '""')}"`,
+      `"${(s.urlDropbox || '').replace(/"/g, '""')}"`,
+    ]);
+    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  },
+
+  /**
    * Exporte le fichier JavaScript chiffré students.js
    */
   generateEncryptedJs(students) {
