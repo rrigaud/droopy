@@ -12,40 +12,17 @@
         <div class="absolute -top-20 -left-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-glow"></div>
         <div class="absolute -bottom-20 -right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none animate-glow"></div>
 
-        <!-- EN-TÊTE : CHOUETTE VERTE + TITRE -->
+        <!-- EN-TÊTE : ICÔNE OFFICIELLE DROOPY + TITRE -->
         <div class="text-center relative z-10 mb-6">
-          <!-- Icône Chouette Verte avec Mortier d'Étudiant -->
+          <!-- Icône Officielle Droopy (Style Géométrique Low-Poly) -->
           <div class="relative inline-block mb-3">
             <div
-              class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-gradient-to-b from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center p-2.5 shadow-xl shadow-emerald-950/20 animate-gentle"
+              class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-b from-blue-500/20 to-indigo-500/10 border border-blue-500/30 flex items-center justify-center p-2 shadow-xl shadow-blue-950/20 animate-gentle"
             >
-              <svg class="w-full h-full drop-shadow-md" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Corps de la Chouette -->
-                <ellipse cx="50" cy="55" rx="34" ry="38" fill="#10b981" />
-                <ellipse cx="50" cy="58" rx="26" ry="30" fill="#ecfdf5" />
-                <!-- Ailes légères -->
-                <path d="M16 55 C16 45 22 68 25 72" stroke="#059669" stroke-width="3" stroke-linecap="round" />
-                <path d="M84 55 C84 45 78 68 75 72" stroke="#059669" stroke-width="3" stroke-linecap="round" />
-                <!-- Yeux savants -->
-                <circle cx="37" cy="45" r="14" fill="#ffffff" stroke="#047857" stroke-width="3" />
-                <circle cx="63" cy="45" r="14" fill="#ffffff" stroke="#047857" stroke-width="3" />
-                <circle cx="39" cy="45" r="6" fill="#0f172a" />
-                <circle cx="61" cy="45" r="6" fill="#0f172a" />
-                <!-- Reflets lumineux -->
-                <circle cx="41" cy="43" r="2" fill="#ffffff" />
-                <circle cx="63" cy="43" r="2" fill="#ffffff" />
-                <!-- Bec orange -->
-                <polygon points="50,53 43,62 57,62" fill="#f59e0b" />
-                <!-- Chapeau de diplômé (Mortarboard) -->
-                <rect x="26" y="16" width="48" height="8" rx="2" fill="#1e293b" />
-                <polygon points="50,7 16,19 50,21 84,19" fill="#0f172a" />
-                <!-- Pompon or -->
-                <path d="M78 19v15" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" />
-                <circle cx="78" cy="36" r="3.5" fill="#f59e0b" />
-              </svg>
+              <img src="/logo.png" alt="Droopy" class="w-full h-full object-contain rounded-xl drop-shadow-md" />
             </div>
             <span
-              class="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-emerald-500 text-[10px] font-extrabold text-white uppercase tracking-wider shadow-md"
+              class="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-blue-600 text-[10px] font-extrabold text-white uppercase tracking-wider shadow-md"
             >
               v5.0.0
             </span>
