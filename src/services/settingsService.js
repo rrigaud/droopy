@@ -3,11 +3,14 @@ import { storage } from './storage.js';
 import { DEFAULT_PORTAL_ICON_B64 } from '../assets/portal-icons/defaultIconBase64.js';
 
 export const DEFAULT_SETTINGS = {
-  portalUrl: 'https://espace-eleves.fr/',
-  portalTitle: 'Espace-Eleves.fr',
+  portalUrl: 'https://portail-eleve.fr/',
+  portalTitle: 'Portail Élèves',
   portalSubtitle: 'Évaluations & Documents de la classe',
   portalTheme: 'emeraude',
   portalIcon: 'Icon-portail.png',
+  portalLastGeneratedAt: null,
+  studentsLastSyncedAt: null,
+  studentsLastModifiedAt: null,
 };
 
 export const settingsService = {
@@ -112,12 +115,23 @@ export const settingsService = {
     const cleanRoot = sourceFolder.replace(/\/+$/, '');
     const settingsPath = this.getSettingsFilePath(cleanRoot);
 
+    let current = { ...DEFAULT_SETTINGS };
+    try {
+      const raw = await nativeFs.readTextFile(settingsPath);
+      current = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    } catch (_) {}
+
     const merged = {
-      portalUrl: newSettings.portalUrl !== undefined ? newSettings.portalUrl.trim() : DEFAULT_SETTINGS.portalUrl,
-      portalTitle: newSettings.portalTitle !== undefined ? newSettings.portalTitle.trim() : DEFAULT_SETTINGS.portalTitle,
-      portalSubtitle: newSettings.portalSubtitle !== undefined ? newSettings.portalSubtitle.trim() : DEFAULT_SETTINGS.portalSubtitle,
-      portalTheme: newSettings.portalTheme || DEFAULT_SETTINGS.portalTheme,
-      portalIcon: newSettings.portalIcon || DEFAULT_SETTINGS.portalIcon,
+      ...current,
+      ...newSettings,
+      portalUrl: newSettings.portalUrl !== undefined ? newSettings.portalUrl.trim() : (current.portalUrl || DEFAULT_SETTINGS.portalUrl),
+      portalTitle: newSettings.portalTitle !== undefined ? newSettings.portalTitle.trim() : (current.portalTitle || DEFAULT_SETTINGS.portalTitle),
+      portalSubtitle: newSettings.portalSubtitle !== undefined ? newSettings.portalSubtitle.trim() : (current.portalSubtitle || DEFAULT_SETTINGS.portalSubtitle),
+      portalTheme: newSettings.portalTheme || current.portalTheme || DEFAULT_SETTINGS.portalTheme,
+      portalIcon: newSettings.portalIcon || current.portalIcon || DEFAULT_SETTINGS.portalIcon,
+      portalLastGeneratedAt: newSettings.portalLastGeneratedAt !== undefined ? newSettings.portalLastGeneratedAt : current.portalLastGeneratedAt,
+      studentsLastSyncedAt: newSettings.studentsLastSyncedAt !== undefined ? newSettings.studentsLastSyncedAt : current.studentsLastSyncedAt,
+      studentsLastModifiedAt: newSettings.studentsLastModifiedAt !== undefined ? newSettings.studentsLastModifiedAt : current.studentsLastModifiedAt,
     };
 
     await nativeFs.writeTextFile(settingsPath, JSON.stringify(merged, null, 2));
@@ -129,6 +143,26 @@ export const settingsService = {
     storage.setPortalTheme(merged.portalTheme);
 
     return merged;
+  },
+
+  async recordStudentsModified(sourceFolder) {
+    return await this.saveSettings(sourceFolder, {
+      studentsLastModifiedAt: new Date().toISOString(),
+    });
+  },
+
+  async recordStudentsSynced(sourceFolder) {
+    const now = new Date().toISOString();
+    return await this.saveSettings(sourceFolder, {
+      studentsLastSyncedAt: now,
+      studentsLastModifiedAt: now,
+    });
+  },
+
+  async recordPortalGenerated(sourceFolder) {
+    return await this.saveSettings(sourceFolder, {
+      portalLastGeneratedAt: new Date().toISOString(),
+    });
   },
 
   /**

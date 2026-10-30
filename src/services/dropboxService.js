@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { storage } from './storage';
-import { isTauri, nativeFs } from './fs';
-import { sanitizeFolderName } from './accentUtils';
+import { storage } from './storage.js';
+import { isTauri, nativeFs } from './fs.js';
+import { sanitizeFolderName } from './accentUtils.js';
 
 function generateCodeVerifier(length = 64) {
   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
@@ -207,14 +207,29 @@ export const dropboxService = {
 
     const cleanRoot = dropboxRoot.replace(/\/+$/, '');
 
-    // Vérifie si cleanSource commence par cleanRoot
-    if (cleanSource === cleanRoot || cleanSource.startsWith(cleanRoot + '/')) {
-      const relativePath = cleanSource.slice(cleanRoot.length);
-      return {
-        inDropbox: true,
-        relativePath: relativePath || '',
-        dropboxRoot: cleanRoot,
-      };
+    // Construire la liste de tous les alias possibles pour la racine Dropbox
+    // Notamment sur macOS où ~/Dropbox est un lien symbolique vers ~/Library/CloudStorage/Dropbox
+    const candidateRoots = new Set([cleanRoot]);
+
+    if (cleanRoot.includes('/Library/CloudStorage/Dropbox')) {
+      candidateRoots.add(cleanRoot.replace('/Library/CloudStorage/Dropbox', '/Dropbox'));
+    }
+    if (cleanRoot.endsWith('/Dropbox') && !cleanRoot.includes('/Library/CloudStorage/')) {
+      candidateRoots.add(cleanRoot.replace(/\/Dropbox$/, '/Library/CloudStorage/Dropbox'));
+    }
+
+    for (const root of candidateRoots) {
+      if (cleanSource === root || cleanSource.startsWith(root + '/')) {
+        let rel = cleanSource.slice(root.length) || '';
+        if (rel && !rel.startsWith('/')) {
+          rel = '/' + rel;
+        }
+        return {
+          inDropbox: true,
+          relativePath: rel,
+          dropboxRoot: cleanRoot,
+        };
+      }
     }
 
     return { inDropbox: false, relativePath: '', dropboxRoot: cleanRoot };
@@ -247,7 +262,8 @@ export const dropboxService = {
     // Cas 2 : Connecté ET dossier Source bien situé dans Dropbox
     try {
       const token = await this.getValidAccessToken();
-      const elevesDropboxPath = `${sourceInfo.relativePath}/Evaluations/Eleves`;
+      const rawPath = `${sourceInfo.relativePath}/Evaluations/Eleves`;
+      const elevesDropboxPath = ('/' + rawPath).replace(/\/+/g, '/').replace(/\/+$/, '');
 
       const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
         method: 'POST',
@@ -272,6 +288,9 @@ export const dropboxService = {
             existingFolders.add(e.path_lower);
           }
         });
+      } else {
+        const errJson = await listRes.json().catch(() => ({}));
+        console.warn('Dropbox list_folder non-ok:', listRes.status, errJson);
       }
 
       return students.map((s) => {

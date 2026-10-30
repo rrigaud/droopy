@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Droopy",
-  "version": "5.0.0-dev",
-  "identifier": "fr.rigaud.droopy",
+  "version": "5.0.0",
+  "identifier": "fr.droopy.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -33,6 +33,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "resources/fr.lproj"
     ],
     "macOS": {
       "infoPlist": "Info.plist"

@@ -109,7 +109,7 @@ export const storage = {
   },
 
   getPortalTitle() {
-    return localStorage.getItem(PREF_PORTAL_TITLE) || 'Espace-Eleves.fr';
+    return localStorage.getItem(PREF_PORTAL_TITLE) || 'Portail Élèves';
   },
 
   setPortalTitle(title) {

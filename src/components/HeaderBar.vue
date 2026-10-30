@@ -6,7 +6,7 @@
         <div class="flex items-center gap-2">
           <img src="/logo.png" alt="Droopy" class="w-8 h-8 rounded-lg shadow-sm" />
           <span class="font-bold text-lg tracking-wide text-blue-600 dark:text-blue-400">
-            DROOPY <span class="text-xs bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded font-mono">v5 dev</span>
+            DROOPY <span class="text-xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono">v5.0.0</span>
           </span>
         </div>
 

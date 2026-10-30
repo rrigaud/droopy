@@ -191,10 +191,15 @@ export const pdfService = {
 
   /**
    * Génère les étiquettes élèves sur 2 colonnes (idéales pour cahiers A5),
-   * séparées par des lignes en pointillés (verticales et horizontales).
+   * séparées par des lignes en pointillés (verticales et horizontales),
+   * avec changement systématique de page à chaque changement de classe.
    */
   async generateLabelsPdf(students, portalUrl = '') {
     const doc = await PDFDocument.create();
+    if (!students || students.length === 0) {
+      return await doc.save();
+    }
+
     const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
     const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
     const fontOblique = await doc.embedFont(StandardFonts.HelveticaOblique);
@@ -215,141 +220,163 @@ export const pdfService = {
     const rowHeight = usableHeight / rowsPerPage; // ~158.77 (5.6 cm)
     const midX = marginX + colWidth; // ~297.64
 
-    let currentPage = null;
+    // 1. Groupement des élèves par classe
+    const classesMap = new Map();
+    for (const s of students) {
+      const cl = (s.classe || 'Sans classe').toString().trim();
+      if (!classesMap.has(cl)) classesMap.set(cl, []);
+      classesMap.get(cl).push(s);
+    }
 
-    for (let idx = 0; idx < students.length; idx++) {
-      const student = students[idx];
-      const posOnPage = idx % labelsPerPage;
+    // 2. Tri des classes par ordre naturel (6A, 6B, 5e1, etc.)
+    const sortedClasses = Array.from(classesMap.keys()).sort((a, b) =>
+      a.localeCompare(b, 'fr', { numeric: true })
+    );
 
-      if (posOnPage === 0) {
-        currentPage = doc.addPage([pageWidth, pageHeight]);
+    // 3. Tri alphabétique des élèves au sein de chaque classe
+    for (const cl of sortedClasses) {
+      classesMap.get(cl).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr'));
+    }
 
-        // Ligne verticale centrale en pointillés
-        currentPage.drawLine({
-          start: { x: midX, y: pageHeight - marginY },
-          end: { x: midX, y: marginY },
-          thickness: 0.7,
-          color: rgb(0.72, 0.75, 0.8),
-          dashArray: [4, 4],
-        });
+    // 4. Génération des étiquettes : chaque classe commence sur une nouvelle page
+    for (const cl of sortedClasses) {
+      const classStudents = classesMap.get(cl);
+      let currentPage = null;
 
-        // 4 lignes horizontales de séparation en pointillés
-        for (let r = 1; r < rowsPerPage; r++) {
-          const lineY = pageHeight - marginY - r * rowHeight;
+      for (let idx = 0; idx < classStudents.length; idx++) {
+        const student = classStudents[idx];
+        const posOnPage = idx % labelsPerPage;
+
+        if (posOnPage === 0) {
+          currentPage = doc.addPage([pageWidth, pageHeight]);
+
+          // Ligne verticale centrale en pointillés
           currentPage.drawLine({
-            start: { x: marginX, y: lineY },
-            end: { x: pageWidth - marginX, y: lineY },
+            start: { x: midX, y: pageHeight - marginY },
+            end: { x: midX, y: marginY },
             thickness: 0.7,
             color: rgb(0.72, 0.75, 0.8),
             dashArray: [4, 4],
           });
+
+          // 4 lignes horizontales de séparation en pointillés
+          for (let r = 1; r < rowsPerPage; r++) {
+            const lineY = pageHeight - marginY - r * rowHeight;
+            currentPage.drawLine({
+              start: { x: marginX, y: lineY },
+              end: { x: pageWidth - marginX, y: lineY },
+              thickness: 0.7,
+              color: rgb(0.72, 0.75, 0.8),
+              dashArray: [4, 4],
+            });
+          }
         }
+
+        const col = posOnPage % colsPerPage;
+        const row = Math.floor(posOnPage / colsPerPage);
+
+        const cellLeft = marginX + col * colWidth + 8;
+        const cellTop = pageHeight - marginY - row * rowHeight - 8;
+        const cellWidth = colWidth - 16;
+
+        // 1. Classe et Nom de l'élève
+        const classe = safeWinAnsiText(student.classe ? String(student.classe).toUpperCase() : '');
+        const nom = safeWinAnsiText(student.name ? String(student.name).toUpperCase() : '');
+        const headerTitle = classe ? `${classe}  -  ${nom}` : nom;
+
+        currentPage.drawText(headerTitle, {
+          x: cellLeft,
+          y: cellTop - 13,
+          size: 11,
+          font: fontBold,
+          color: rgb(0.12, 0.28, 0.54),
+        });
+
+        // 2. Portail de connexion
+        const portalLabel = 'Portail : ';
+        currentPage.drawText(portalLabel, {
+          x: cellLeft,
+          y: cellTop - 28,
+          size: 8,
+          font: fontRegular,
+          color: rgb(0.38, 0.42, 0.48),
+        });
+
+        const labelW = fontRegular.widthOfTextAtSize(portalLabel, 8);
+        currentPage.drawText(cleanPortal || 'Non configure', {
+          x: cellLeft + labelW,
+          y: cellTop - 28,
+          size: 8,
+          font: fontBold,
+          color: cleanPortal ? rgb(0.15, 0.42, 0.8) : rgb(0.7, 0.3, 0.3),
+        });
+
+        // 3. Cadre des identifiants
+        const boxY = cellTop - 100;
+        const boxH = 64;
+        currentPage.drawRectangle({
+          x: cellLeft,
+          y: boxY,
+          width: cellWidth,
+          height: boxH,
+          color: rgb(0.97, 0.98, 1.0),
+          borderColor: rgb(0.83, 0.86, 0.93),
+          borderWidth: 0.8,
+        });
+
+        // Colonne gauche : Identifiant
+        currentPage.drawText('IDENTIFIANT', {
+          x: cellLeft + 10,
+          y: boxY + boxH - 18,
+          size: 7,
+          font: fontBold,
+          color: rgb(0.45, 0.5, 0.6),
+        });
+
+        const login = safeWinAnsiText(student.login || '(aucun)');
+        currentPage.drawText(login, {
+          x: cellLeft + 10,
+          y: boxY + boxH - 38,
+          size: 11,
+          font: fontBold,
+          color: rgb(0.1, 0.12, 0.16),
+        });
+
+        // Ligne de séparation au milieu du cadre
+        currentPage.drawLine({
+          start: { x: cellLeft + cellWidth / 2, y: boxY + 8 },
+          end: { x: cellLeft + cellWidth / 2, y: boxY + boxH - 8 },
+          thickness: 0.6,
+          color: rgb(0.85, 0.88, 0.94),
+        });
+
+        // Colonne droite : Mot de passe
+        currentPage.drawText('MOT DE PASSE', {
+          x: cellLeft + cellWidth / 2 + 10,
+          y: boxY + boxH - 18,
+          size: 7,
+          font: fontBold,
+          color: rgb(0.45, 0.5, 0.6),
+        });
+
+        const password = safeWinAnsiText(student.password || '(aucun)');
+        currentPage.drawText(password, {
+          x: cellLeft + cellWidth / 2 + 10,
+          y: boxY + boxH - 38,
+          size: 11,
+          font: fontBold,
+          color: rgb(0.1, 0.12, 0.16),
+        });
+
+        // 4. Petite note sous le cadre
+        currentPage.drawText('A conserver pour consulter vos copies.', {
+          x: cellLeft,
+          y: cellTop - 116,
+          size: 6.5,
+          font: fontOblique,
+          color: rgb(0.55, 0.58, 0.62),
+        });
       }
-
-      const col = posOnPage % colsPerPage;
-      const row = Math.floor(posOnPage / colsPerPage);
-
-      const cellLeft = marginX + col * colWidth + 8;
-      const cellTop = pageHeight - marginY - row * rowHeight - 8;
-      const cellWidth = colWidth - 16;
-
-      // 1. Classe et Nom de l'élève
-      const classe = safeWinAnsiText(student.classe ? String(student.classe).toUpperCase() : '');
-      const nom = safeWinAnsiText(student.name ? String(student.name).toUpperCase() : '');
-      const headerTitle = classe ? `${classe}  -  ${nom}` : nom;
-
-      currentPage.drawText(headerTitle, {
-        x: cellLeft,
-        y: cellTop - 13,
-        size: 11,
-        font: fontBold,
-        color: rgb(0.12, 0.28, 0.54),
-      });
-
-      // 2. Portail de connexion
-      const portalLabel = 'Portail : ';
-      currentPage.drawText(portalLabel, {
-        x: cellLeft,
-        y: cellTop - 28,
-        size: 8,
-        font: fontRegular,
-        color: rgb(0.38, 0.42, 0.48),
-      });
-
-      const labelW = fontRegular.widthOfTextAtSize(portalLabel, 8);
-      currentPage.drawText(cleanPortal || 'Non configure', {
-        x: cellLeft + labelW,
-        y: cellTop - 28,
-        size: 8,
-        font: fontBold,
-        color: cleanPortal ? rgb(0.15, 0.42, 0.8) : rgb(0.7, 0.3, 0.3),
-      });
-
-      // 3. Cadre des identifiants
-      const boxY = cellTop - 100;
-      const boxH = 64;
-      currentPage.drawRectangle({
-        x: cellLeft,
-        y: boxY,
-        width: cellWidth,
-        height: boxH,
-        color: rgb(0.97, 0.98, 1.0),
-        borderColor: rgb(0.83, 0.86, 0.93),
-        borderWidth: 0.8,
-      });
-
-      // Colonne gauche : Identifiant
-      currentPage.drawText('IDENTIFIANT', {
-        x: cellLeft + 10,
-        y: boxY + boxH - 18,
-        size: 7,
-        font: fontBold,
-        color: rgb(0.45, 0.5, 0.6),
-      });
-
-      const login = safeWinAnsiText(student.login || '(aucun)');
-      currentPage.drawText(login, {
-        x: cellLeft + 10,
-        y: boxY + boxH - 38,
-        size: 11,
-        font: fontBold,
-        color: rgb(0.1, 0.12, 0.16),
-      });
-
-      // Ligne de séparation au milieu du cadre
-      currentPage.drawLine({
-        start: { x: cellLeft + cellWidth / 2, y: boxY + 8 },
-        end: { x: cellLeft + cellWidth / 2, y: boxY + boxH - 8 },
-        thickness: 0.6,
-        color: rgb(0.85, 0.88, 0.94),
-      });
-
-      // Colonne droite : Mot de passe
-      currentPage.drawText('MOT DE PASSE', {
-        x: cellLeft + cellWidth / 2 + 10,
-        y: boxY + boxH - 18,
-        size: 7,
-        font: fontBold,
-        color: rgb(0.45, 0.5, 0.6),
-      });
-
-      const password = safeWinAnsiText(student.password || '(aucun)');
-      currentPage.drawText(password, {
-        x: cellLeft + cellWidth / 2 + 10,
-        y: boxY + boxH - 38,
-        size: 11,
-        font: fontBold,
-        color: rgb(0.1, 0.12, 0.16),
-      });
-
-      // 4. Petite note sous le cadre
-      currentPage.drawText('A conserver pour consulter vos copies.', {
-        x: cellLeft,
-        y: cellTop - 116,
-        size: 6.5,
-        font: fontOblique,
-        color: rgb(0.55, 0.58, 0.62),
-      });
     }
 
     return await doc.save();

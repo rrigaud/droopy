@@ -12,6 +12,7 @@ use tauri::command;
 #[command]
 fn select_folder(default_path: Option<String>) -> Result<Option<String>, String> {
     let mut dialog = rfd::FileDialog::new();
+    dialog = dialog.set_title("Sélectionner un dossier");
     if let Some(ref p) = default_path {
         if Path::new(p).exists() {
             dialog = dialog.set_directory(p);
@@ -29,9 +30,8 @@ fn select_file(
     default_path: Option<String>,
 ) -> Result<Option<String>, String> {
     let mut dialog = rfd::FileDialog::new();
-    if let Some(t) = title {
-        dialog = dialog.set_title(t);
-    }
+    let title_str = title.unwrap_or_else(|| "Sélectionner un fichier".to_string());
+    dialog = dialog.set_title(title_str);
     if let Some(ref p) = default_path {
         if Path::new(p).exists() {
             dialog = dialog.set_directory(p);
@@ -54,9 +54,8 @@ fn save_file(
     default_path: Option<String>,
 ) -> Result<Option<String>, String> {
     let mut dialog = rfd::FileDialog::new();
-    if let Some(t) = title {
-        dialog = dialog.set_title(t);
-    }
+    let title_str = title.unwrap_or_else(|| "Enregistrer sous".to_string());
+    dialog = dialog.set_title(title_str);
     if let Some(n) = default_name {
         dialog = dialog.set_file_name(n);
     }
@@ -237,7 +236,11 @@ fn get_dropbox_root() -> Result<Option<String>, String> {
     ];
 
     for p in standard_paths {
-        if Path::new(&p).exists() {
+        let path = Path::new(&p);
+        if path.exists() {
+            if let Ok(canon) = fs::canonicalize(path) {
+                return Ok(Some(canon.to_string_lossy().to_string()));
+            }
             return Ok(Some(p));
         }
     }
@@ -342,7 +345,62 @@ fn open_path(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+struct OnlinePortalVersion {
+    #[serde(rename = "updatedAt")]
+    updated_at: Option<String>,
+    #[serde(rename = "studentCount")]
+    student_count: Option<usize>,
+}
+
+#[command]
+async fn check_online_portal_version(portal_url: String) -> Result<Option<String>, String> {
+    let clean_url = portal_url.trim().trim_end_matches('/');
+    if clean_url.is_empty() || !clean_url.starts_with("http") {
+        return Ok(None);
+    }
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let target_url = format!("{}/version.json?_t={}", clean_url, timestamp);
+
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_secs(3))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let resp = match client.get(&target_url).send().await {
+        Ok(r) => r,
+        Err(_) => return Ok(None),
+    };
+
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+
+    let parsed = match resp.json::<OnlinePortalVersion>().await {
+        Ok(data) => data,
+        Err(_) => return Ok(None),
+    };
+
+    Ok(parsed.updated_at)
+}
+
+#[cfg(target_os = "macos")]
+fn init_macos_locale() {
+    std::env::set_var("LANG", "fr_FR.UTF-8");
+    std::env::set_var("LC_ALL", "fr_FR.UTF-8");
+    std::env::set_var("LC_MESSAGES", "fr_FR.UTF-8");
+}
+
 fn main() {
+    #[cfg(target_os = "macos")]
+    init_macos_locale();
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             select_folder,
@@ -363,7 +421,8 @@ fn main() {
             delete_file,
             delete_dir,
             copy_to_clipboard,
-            open_path
+            open_path,
+            check_online_portal_version
         ])
         .run(tauri::generate_context!())
         .expect("Erreur lors de l'exécution de l'application Droopy");

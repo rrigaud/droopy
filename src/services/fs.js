@@ -9,7 +9,7 @@ export const nativeFs = {
     if (isTauri()) {
       return await invoke('select_folder', { defaultPath: defaultPath || null });
     }
-    return window.prompt('Dossier Source (chemin local absolu):', defaultPath || '/Users/raph/Documents/Source Droopy');
+    return window.prompt('Dossier Source (chemin local absolu):', defaultPath || '/Users/enseignant/Documents/Source Droopy');
   },
 
   async getDropboxRoot() {
@@ -244,5 +244,29 @@ export const nativeFs = {
       return await invoke('open_path', { path });
     }
     console.log('openPath (web fallback):', path);
+  },
+
+  async checkOnlinePortalVersion(portalUrl) {
+    if (!portalUrl) return null;
+    if (isTauri()) {
+      try {
+        return await invoke('check_online_portal_version', { portalUrl });
+      } catch (e) {
+        console.warn('check_online_portal_version error:', e);
+        return null;
+      }
+    }
+    // Web fallback
+    try {
+      const clean = portalUrl.trim().replace(/\/+$/, '');
+      const res = await fetch(`${clean}/version.json?_t=${Date.now()}`);
+      if (res.ok) {
+        const json = await res.json();
+        return json?.updatedAt || null;
+      }
+    } catch {
+      return null;
+    }
+    return null;
   },
 };

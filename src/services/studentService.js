@@ -2,6 +2,7 @@ import { nativeFs } from './fs.js';
 import { sanitizeFolderName } from './accentUtils.js';
 import { generateRandomPassword } from './dictionary.js';
 import { sha256 } from './cryptoService.js';
+import { settingsService } from './settingsService.js';
 
 export const studentService = {
   getStudentsFilePath(sourceFolder) {
@@ -131,6 +132,9 @@ export const studentService = {
 
     const jsonStr = JSON.stringify(cleanList, null, 2);
     await nativeFs.writeTextFile(filePath, jsonStr);
+    try {
+      await settingsService.recordStudentsModified(sourceFolder);
+    } catch (_) {}
     return cleanList;
   },
 

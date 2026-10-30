@@ -1,7 +1,7 @@
 import { nativeFs } from './fs.js';
 import { storage } from './storage.js';
 import { settingsService, DEFAULT_SETTINGS } from './settingsService.js';
-import { dropboxService } from './dropboxService';
+import { dropboxService } from './dropboxService.js';
 import { sha256 } from './cryptoService.js';
 import { DEFAULT_PORTAL_ICON_B64 } from '../assets/portal-icons/defaultIconBase64.js';
 
@@ -138,8 +138,9 @@ const PortalData = {
 
     // 7. Écriture de manifest.json
     const themeColors = {
-      emeraude: { theme: '#50a3a2', bg: '#53e3a6' },
-      sombre: { theme: '#1e1e38', bg: '#2d2b55' },
+      emeraude: { theme: '#10b981', bg: '#020617' },
+      azur: { theme: '#38bdf8', bg: '#020617' },
+      sombre: { theme: '#1e1e38', bg: '#020617' },
       clair: { theme: '#f8fafc', bg: '#ffffff' },
     };
     const colors = themeColors[portalTheme] || themeColors.emeraude;
@@ -228,12 +229,28 @@ APPLICATION SMARTPHONE (PWA) :
 `;
     await nativeFs.writeTextFile(`${outDir}/README.txt`, readmeContent);
 
+    // 13. Écriture de version.json pour la vérification de déploiement en ligne
+    const generatedAt = new Date().toISOString();
+    const versionPayload = {
+      updatedAt: generatedAt,
+      studentCount: encryptedStudents.length,
+      generator: 'Droopy v5',
+    };
+    await nativeFs.writeTextFile(
+      `${outDir}/version.json`,
+      JSON.stringify(versionPayload, null, 2)
+    );
+
+    // Enregistrement de l'horodatage dans settings.json
+    await settingsService.recordPortalGenerated(cleanRoot);
+
     return {
       success: true,
       path: outDir,
       studentCount: encryptedStudents.length,
       portalTitle,
       portalTheme,
+      generatedAt,
     };
   },
 
@@ -241,25 +258,49 @@ APPLICATION SMARTPHONE (PWA) :
    * Générateur de la feuille de style CSS
    */
   generateCss(theme) {
-    let backgroundRule = '';
-    let cardRule = '';
-    let btnPrimaryRule = '';
-    let isEmeraude = theme === 'emeraude';
-    let isSombre = theme === 'sombre';
+    const isAzur = theme === 'azur';
 
-    if (isEmeraude) {
-      backgroundRule = `background: linear-gradient(135deg, #50a3a2 0%, #53e3a6 100%); color: #ffffff;`;
-      cardRule = `background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.5);`;
-      btnPrimaryRule = `background: #50a3a2; color: #ffffff;`;
-    } else if (isSombre) {
-      backgroundRule = `background: linear-gradient(160deg, #1e1e38 0%, #2d2b55 50%, #1a1930 100%); color: #f8fafc;`;
-      cardRule = `background: rgba(26, 25, 48, 0.9); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #f8fafc; border: 1px solid rgba(139, 92, 246, 0.3);`;
-      btnPrimaryRule = `background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: #ffffff;`;
-    } else {
-      backgroundRule = `background: #f8fafc; color: #0f172a;`;
-      cardRule = `background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);`;
-      btnPrimaryRule = `background: #0f172a; color: #ffffff;`;
-    }
+    const vars = isAzur
+      ? `
+  --theme-body-bg: radial-gradient(ellipse at 50% 20%, #0c4a6e 0%, #172554 45%, #020617 100%);
+  --theme-glow: rgba(56, 189, 248, 0.30);
+  --theme-card-bg: rgba(255, 255, 255, 0.08);
+  --theme-card-border: rgba(255, 255, 255, 0.16);
+  --theme-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.65), 0 0 40px rgba(56, 189, 248, 0.15);
+  --theme-primary: #38bdf8;
+  --theme-primary-hover: #7dd3fc;
+  --theme-btn-text: #082f49;
+  --theme-btn-shadow: 0 8px 24px rgba(56, 189, 248, 0.35);
+  --theme-input-bg: rgba(255, 255, 255, 0.07);
+  --theme-input-border: rgba(255, 255, 255, 0.16);
+  --theme-input-focus: #38bdf8;
+  --theme-particle-color: #bae6fd;
+  --theme-avatar-bg: rgba(56, 189, 248, 0.2);
+  --theme-avatar-border: rgba(125, 211, 252, 0.4);
+  --theme-badge-bg: rgba(56, 189, 248, 0.2);
+  --theme-badge-text: #7dd3fc;
+  --theme-badge-border: rgba(56, 189, 248, 0.35);
+`
+      : `
+  --theme-body-bg: radial-gradient(ellipse at 50% 20%, #064e3b 0%, #022c22 45%, #020617 100%);
+  --theme-glow: rgba(16, 185, 129, 0.28);
+  --theme-card-bg: rgba(255, 255, 255, 0.08);
+  --theme-card-border: rgba(255, 255, 255, 0.16);
+  --theme-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.65), 0 0 40px rgba(16, 185, 129, 0.12);
+  --theme-primary: #10b981;
+  --theme-primary-hover: #34d399;
+  --theme-btn-text: #022c22;
+  --theme-btn-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+  --theme-input-bg: rgba(255, 255, 255, 0.07);
+  --theme-input-border: rgba(255, 255, 255, 0.16);
+  --theme-input-focus: #10b981;
+  --theme-particle-color: #6ee7b7;
+  --theme-avatar-bg: rgba(16, 185, 129, 0.2);
+  --theme-avatar-border: rgba(52, 211, 153, 0.35);
+  --theme-badge-bg: rgba(16, 185, 129, 0.2);
+  --theme-badge-text: #6ee7b7;
+  --theme-badge-border: rgba(16, 185, 129, 0.35);
+`;
 
     return `* {
   box-sizing: border-box;
@@ -267,76 +308,185 @@ APPLICATION SMARTPHONE (PWA) :
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+:root {
+  ${vars}
+}
 html, body {
   min-height: 100%;
   width: 100%;
 }
 body {
-  ${backgroundRule}
+  background: var(--theme-body-bg);
+  color: #f8fafc;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 24px 16px;
   position: relative;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.ambient-glow {
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: var(--theme-glow);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 1;
+}
+.particles-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+.school-particle {
+  position: absolute;
+  bottom: -50px;
+  animation: floatUpward linear infinite;
+  will-change: transform, opacity;
+  color: var(--theme-particle-color);
+}
+@keyframes floatUpward {
+  0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+  12% { opacity: var(--particle-opacity, 0.2); }
+  88% { opacity: var(--particle-opacity, 0.2); }
+  100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
 }
 .portal-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 410px;
   margin: auto;
   position: relative;
   z-index: 10;
   text-align: center;
 }
 .avatar-wrapper {
-  position: relative;
+  margin-bottom: 14px;
   display: inline-block;
-  margin-bottom: 12px;
+  position: relative;
+}
+.avatar-squircle {
+  width: 98px;
+  height: 98px;
+  border-radius: 26px;
+  background: var(--theme-avatar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid var(--theme-avatar-border);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  animation: gentleFloat 4s ease-in-out infinite;
+  margin: 0 auto;
 }
 .avatar-img {
-  width: 96px;
-  height: 96px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 18px;
+  display: block;
+}
+.avatar-shadow {
+  width: 76px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.35);
   border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  margin: 8px auto 0;
+  filter: blur(4px);
+  animation: shadowPulse 4s ease-in-out infinite;
+}
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes shadowPulse {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(0.85); opacity: 0.16; }
 }
 .portal-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
 .portal-subtitle {
   font-size: 13px;
-  opacity: 0.85;
-  margin-bottom: 18px;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 22px;
+  font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 .card {
-  ${cardRule}
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  background: var(--theme-card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--theme-card-border);
+  border-radius: 26px;
+  padding: 28px 24px;
+  box-shadow: var(--theme-card-shadow);
+  color: #ffffff;
   text-align: left;
 }
-.card-title {
-  font-size: 15px;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 18px;
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.form-group {
-  margin-bottom: 14px;
-}
-.form-label {
+.card-header-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--theme-badge-text);
   display: block;
+  margin-bottom: 2px;
+}
+.card-header h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.card-lock-tag {
+  background: var(--theme-badge-bg);
+  color: var(--theme-badge-text);
+  border: 1px solid var(--theme-badge-border);
   font-size: 11px;
   font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.form-group {
+  margin-bottom: 16px;
+}
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
-  opacity: 0.75;
+}
+.form-label svg {
+  width: 14px;
+  height: 14px;
+  color: var(--theme-primary);
 }
 .input-wrapper {
   position: relative;
@@ -345,191 +495,350 @@ body {
 }
 .form-input {
   width: 100%;
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--theme-input-border);
+  background: var(--theme-input-bg);
+  color: #ffffff;
   font-size: 14px;
+  font-weight: 500;
   outline: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: #0f172a;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
 }
-${isSombre ? '.form-input { background: rgba(30, 29, 56, 0.8); border-color: rgba(139, 92, 246, 0.3); color: #f8fafc; }' : ''}
+.form-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+.form-input.pwd-field {
+  padding-right: 44px;
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
 .form-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--theme-input-focus);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
-.btn-toggle-pwd {
+.input-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 5px;
+  padding-left: 2px;
+}
+.btn-eye-toggle {
   position: absolute;
-  right: 10px;
-  background: none;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   border: none;
-  font-size: 12px;
-  color: #6366f1;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.btn-eye-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.btn-eye-toggle svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
 }
 .btn-submit {
-  ${btnPrimaryRule}
   width: 100%;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 14px;
+  border-radius: 14px;
   border: none;
+  background: var(--theme-primary);
+  color: var(--theme-btn-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.15s, opacity 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-shadow: var(--theme-btn-shadow);
+  transition: all 0.15s ease;
+  margin-top: 8px;
 }
 .btn-submit:hover {
+  background: var(--theme-primary-hover);
   transform: translateY(-1px);
-  opacity: 0.95;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
 }
 .btn-submit:active {
   transform: translateY(0);
 }
+.btn-submit svg {
+  width: 16px;
+  height: 16px;
+}
 .error-box {
   display: none;
-  margin-top: 12px;
+  margin-top: 14px;
   padding: 10px;
-  border-radius: 10px;
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  color: #991b1b;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
   font-size: 12px;
   text-align: center;
   font-weight: 600;
 }
-.action-btn {
+.dash-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 14px;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 14px;
-  margin-bottom: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  transition: transform 0.15s;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.action-btn:hover {
-  transform: translateY(-2px);
-}
-.btn-evals {
-  background: #059669;
-  color: #ffffff;
-}
-.btn-docs {
-  background: rgba(255, 255, 255, 0.95);
-  color: #1e293b;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-${isSombre ? '.btn-docs { background: rgba(45, 43, 85, 0.8); color: #f8fafc; border-color: rgba(139, 92, 246, 0.3); }' : ''}
-.btn-pwa {
-  margin-top: 14px;
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: inherit;
-  padding: 8px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+.dash-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  backdrop-filter: blur(8px);
+  background: var(--theme-badge-bg);
+  color: var(--theme-badge-text);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 12px;
+  margin-bottom: 4px;
+  border: 1px solid var(--theme-badge-border);
 }
-${theme === 'clair' ? '.btn-pwa { background: #ffffff; border-color: #cbd5e1; color: #0f172a; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }' : ''}
+.dash-pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--theme-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+.dash-student-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.2;
+}
+.dash-student-class {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 3px;
+}
+.dash-avatar-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  background: var(--theme-primary);
+  color: var(--theme-btn-text);
+  font-size: 16px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.dash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.btn-dash-dropbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--theme-primary);
+  color: var(--theme-btn-text);
+  text-decoration: none;
+  box-shadow: var(--theme-btn-shadow);
+  transition: all 0.2s ease;
+}
+.btn-dash-dropbox:hover {
+  background: var(--theme-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.btn-dash-docs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.btn-dash-docs:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--theme-primary);
+  transform: translateY(-2px);
+}
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.action-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.action-icon-box.green {
+  background: rgba(0, 0, 0, 0.12);
+}
+.action-icon-box.white {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.action-texts h4 {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.action-texts p {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.cloud-info-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.cloud-info-box svg {
+  width: 18px;
+  height: 18px;
+  color: var(--theme-primary);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.cloud-info-box p {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.45;
+}
+.dash-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.btn-logout {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+.card-footer-pwa {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.pwa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pwa-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--theme-primary);
+}
+.btn-pwa-install {
+  background: transparent;
+  border: none;
+  color: var(--theme-primary);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.btn-pwa-install:hover {
+  text-decoration: underline;
+}
 .modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
   z-index: 100;
   align-items: center;
   justify-content: center;
   padding: 16px;
 }
 .modal-box {
-  background: #ffffff;
-  color: #0f172a;
-  border-radius: 20px;
-  padding: 22px;
-  max-width: 360px;
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 24px;
+  max-width: 380px;
   width: 100%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   text-align: left;
 }
-${isSombre ? '.modal-box { background: #1e1e38; color: #f8fafc; border: 1px solid #4338ca; }' : ''}
 .modal-title {
   font-size: 16px;
   font-weight: 800;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .modal-step {
-  padding: 10px;
-  background: #f1f5f9;
-  border-radius: 10px;
-  margin-bottom: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 10px;
   font-size: 12px;
-  line-height: 1.4;
-}
-${isSombre ? '.modal-step { background: #2d2b55; }' : ''}
-
-${
-  isEmeraude
-    ? `
-/* Bulles flottantes pour le thème Émeraude */
-.bg-bubbles {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-.bg-bubbles li {
-  position: absolute;
-  list-style: none;
-  display: block;
-  width: 40px;
-  height: 40px;
-  background-color: rgba(255, 255, 255, 0.18);
-  bottom: -160px;
-  animation: square 25s infinite linear;
-  border-radius: 8px;
-}
-.bg-bubbles li:nth-child(1) { left: 10%; width: 30px; height: 30px; animation-duration: 20s; }
-.bg-bubbles li:nth-child(2) { left: 20%; width: 70px; height: 70px; animation-delay: 2s; animation-duration: 17s; }
-.bg-bubbles li:nth-child(3) { left: 25%; width: 25px; height: 25px; animation-delay: 4s; }
-.bg-bubbles li:nth-child(4) { left: 40%; width: 50px; height: 50px; animation-duration: 22s; background-color: rgba(255, 255, 255, 0.25); }
-.bg-bubbles li:nth-child(5) { left: 70%; width: 35px; height: 35px; }
-.bg-bubbles li:nth-child(6) { left: 80%; width: 90px; height: 90px; animation-delay: 3s; background-color: rgba(255, 255, 255, 0.2); }
-.bg-bubbles li:nth-child(7) { left: 32%; width: 110px; height: 110px; animation-delay: 7s; }
-.bg-bubbles li:nth-child(8) { left: 55%; width: 20px; height: 20px; animation-delay: 15s; animation-duration: 35s; }
-.bg-bubbles li:nth-child(9) { left: 25%; width: 15px; height: 15px; animation-delay: 2s; animation-duration: 35s; background-color: rgba(255, 255, 255, 0.3); }
-.bg-bubbles li:nth-child(10) { left: 90%; width: 120px; height: 120px; animation-delay: 11s; }
-@keyframes square {
-  0% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
-  100% { transform: translateY(-1100px) rotate(600deg); opacity: 0; }
-}
-`
-    : ''
+  line-height: 1.45;
 }
 `;
   },
@@ -538,7 +847,7 @@ ${
    * Générateur de scripts/app.js pour le portail autonome
    */
   generateAppJs() {
-    return `// Logique d'authentification et d'installation PWA
+    return `// Logique d'authentification et d'installation PWA - Droopy v5
 (function() {
   'use strict';
 
@@ -549,9 +858,12 @@ ${
   const inputPassword = document.getElementById('inputPassword');
   const btnLogin = document.getElementById('btnLogin');
   const btnTogglePwd = document.getElementById('btnTogglePwd');
+  const eyeSvgOpen = document.getElementById('eyeSvgOpen');
+  const eyeSvgOff = document.getElementById('eyeSvgOff');
   const errorBox = document.getElementById('errorBox');
   const studentNameEl = document.getElementById('studentName');
   const studentClassEl = document.getElementById('studentClass');
+  const studentInitialsEl = document.getElementById('studentInitials');
   const linkDropbox = document.getElementById('linkDropbox');
   const linkDocs = document.getElementById('linkDocs');
   const btnLogout = document.getElementById('btnLogout');
@@ -559,12 +871,15 @@ ${
   const modalPwa = document.getElementById('modalPwa');
   const btnCloseModal = document.getElementById('btnCloseModal');
 
-  // Afficher / Masquer mot de passe
+  // Afficher / Masquer mot de passe avec l'icône oeil vectoriel classique
   if (btnTogglePwd) {
     btnTogglePwd.addEventListener('click', () => {
       const isPwd = inputPassword.type === 'password';
       inputPassword.type = isPwd ? 'text' : 'password';
-      btnTogglePwd.innerText = isPwd ? 'Masquer' : 'Afficher';
+      if (eyeSvgOpen && eyeSvgOff) {
+        eyeSvgOpen.style.display = isPwd ? 'none' : 'block';
+        eyeSvgOff.style.display = isPwd ? 'block' : 'none';
+      }
     });
   }
 
@@ -630,7 +945,7 @@ ${
 
     try {
       btnLogin.disabled = true;
-      btnLogin.innerText = 'Vérification...';
+      btnLogin.innerHTML = '<span>Déchiffrement AES...</span>';
 
       const hashedLogin = await sha256(login);
       const studentEntry = (PortalData.students || []).find((s) => s.h === hashedLogin);
@@ -644,7 +959,15 @@ ${
 
       // Succès : affichage de l'espace élève
       studentNameEl.innerText = student.name;
-      studentClassEl.innerText = 'Classe : ' + student.classe;
+      studentClassEl.innerText = student.classe ? 'Classe : ' + student.classe : '';
+
+      // Initiales élève
+      if (studentInitialsEl && student.name) {
+        const parts = student.name.trim().split(/\s+/);
+        studentInitialsEl.innerText = parts.length >= 2 
+          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+          : student.name.substring(0, 2).toUpperCase();
+      }
 
       if (student.dropbox) {
         linkDropbox.href = student.dropbox;
@@ -668,7 +991,7 @@ ${
       errorBox.style.display = 'block';
     } finally {
       btnLogin.disabled = false;
-      btnLogin.innerHTML = '<span>Ouvrir mon dossier</span> <span>→</span>';
+      btnLogin.innerHTML = '<span>Ouvrir mon dossier</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
     }
   }
 
@@ -697,7 +1020,6 @@ ${
     btnPwa.style.display = 'none';
   }
 
-  // Interception de l'événement natif Android / Chrome
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -709,7 +1031,6 @@ ${
   if (btnPwa) {
     btnPwa.addEventListener('click', () => {
       if (deferredPrompt) {
-        // Déclenchement 1-clic sous Android / Chrome
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then((choice) => {
           if (choice.outcome === 'accepted') {
@@ -718,7 +1039,6 @@ ${
           deferredPrompt = null;
         });
       } else {
-        // Affichage de la boîte d'aide illustrée (iOS ou fallback)
         openPwaModal();
       }
     });
@@ -756,7 +1076,6 @@ ${
     if (e.target === modalPwa) modalPwa.style.display = 'none';
   });
 
-  // Enregistrement du Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
@@ -768,8 +1087,6 @@ ${
    * Générateur de index.html pour le portail autonome
    */
   generateHtml(title, subtitle, theme, colors) {
-    const isEmeraude = theme === 'emeraude';
-
     return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -790,20 +1107,34 @@ ${
 </head>
 <body>
 
-  ${
-    isEmeraude
-      ? `
-  <ul class="bg-bubbles">
-    <li></li><li></li><li></li><li></li><li></li>
-    <li></li><li></li><li></li><li></li><li></li>
-  </ul>
-  `
-      : ''
-  }
+  <!-- Halo lumineux en arrière-plan -->
+  <div class="ambient-glow"></div>
+
+  <!-- Particules scolaires ascendantes (maths, chimie, géo, français, langues) -->
+  
+    <div class="particles-layer">
+      <div class="school-particle" style="left: 6%; animation-duration: 22s; animation-delay: -2s; --particle-opacity: 0.22; transform: scale(1.1);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="3,21 21,21 3,3"/><rect x="3" y="17" width="4" height="4" stroke-width="1.2"/></svg></div>
+      <div class="school-particle" style="left: 18%; animation-duration: 28s; animation-delay: -11s; --particle-opacity: 0.18; transform: scale(0.9);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12M9 8h2M9 11h3"/></svg></div>
+      <div class="school-particle" style="left: 28%; animation-duration: 20s; animation-delay: -5s; --particle-opacity: 0.25; transform: scale(1.2);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg></div>
+      <div class="school-particle" style="left: 42%; animation-duration: 25s; animation-delay: -17s; --particle-opacity: 0.20; transform: scale(1.0);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <div class="school-particle" style="left: 55%; animation-duration: 21s; animation-delay: -8s; --particle-opacity: 0.24; transform: scale(1.15);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"/></svg></div>
+      <div class="school-particle" style="left: 68%; animation-duration: 30s; animation-delay: -14s; --particle-opacity: 0.16; transform: scale(0.85);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+      <div class="school-particle" style="left: 80%; animation-duration: 24s; animation-delay: -3s; --particle-opacity: 0.22; transform: scale(1.05);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M8 7v12M16 7v10a2 2 0 0 0 2 2"/></svg></div>
+      <div class="school-particle" style="left: 92%; animation-duration: 27s; animation-delay: -19s; --particle-opacity: 0.19; transform: scale(0.95);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="3,21 21,21 3,3"/><rect x="3" y="17" width="4" height="4" stroke-width="1.2"/></svg></div>
+      <div class="school-particle" style="left: 12%; animation-duration: 23s; animation-delay: -15s; --particle-opacity: 0.21; transform: scale(1.1);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12M9 8h2M9 11h3"/></svg></div>
+      <div class="school-particle" style="left: 35%; animation-duration: 29s; animation-delay: -7s; --particle-opacity: 0.17; transform: scale(0.9);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg></div>
+      <div class="school-particle" style="left: 50%; animation-duration: 19s; animation-delay: -1s; --particle-opacity: 0.26; transform: scale(1.25);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <div class="school-particle" style="left: 62%; animation-duration: 26s; animation-delay: -21s; --particle-opacity: 0.20; transform: scale(1.0);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"/></svg></div>
+      <div class="school-particle" style="left: 75%; animation-duration: 22s; animation-delay: -9s; --particle-opacity: 0.23; transform: scale(1.1);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+      <div class="school-particle" style="left: 88%; animation-duration: 31s; animation-delay: -12s; --particle-opacity: 0.15; transform: scale(0.85);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M8 7v12M16 7v10a2 2 0 0 0 2 2"/></svg></div>
+    </div>
 
   <div class="portal-container">
     <div class="avatar-wrapper">
-      <img src="images/icons/icon-192x192.png" alt="Avatar" class="avatar-img">
+      <div class="avatar-squircle">
+        <img src="images/icons/icon-192x192.png" alt="Avatar" class="avatar-img">
+      </div>
+      <div class="avatar-shadow"></div>
     </div>
 
     <h1 class="portal-title">${title}</h1>
@@ -811,10 +1142,22 @@ ${
 
     <!-- FORMULAIRE DE CONNEXION -->
     <div id="formLogin" class="card">
-      <h2 class="card-title">Bienvenue sur votre espace</h2>
+      <div class="card-header">
+        <div>
+          <span class="card-header-badge">Espace Réservé</span>
+          <h3>Connexion à votre dossier</h3>
+        </div>
+        <span class="card-lock-tag">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          AES 256
+        </span>
+      </div>
 
       <div class="form-group">
-        <label class="form-label" for="inputLogin">Identifiant élève</label>
+        <label class="form-label" for="inputLogin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Identifiant élève
+        </label>
         <div class="input-wrapper">
           <input
             type="text"
@@ -826,68 +1169,110 @@ ${
             spellcheck="false"
           >
         </div>
+        <div class="input-hint">Transmis par votre enseignant (ex: prenom.nom)</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="inputPassword">Mot de passe</label>
+        <label class="form-label" for="inputPassword">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Mot de passe
+        </label>
         <div class="input-wrapper">
           <input
             type="password"
             id="inputPassword"
-            class="form-input"
-            placeholder="ex: kiwi-bleu"
+            class="form-input pwd-field"
+            placeholder="Votre mot de passe"
             autocapitalize="none"
           >
-          <button type="button" id="btnTogglePwd" class="btn-toggle-pwd">Afficher</button>
+          <button type="button" id="btnTogglePwd" class="btn-eye-toggle" title="Afficher / Masquer le mot de passe">
+            <svg id="eyeSvgOpen" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 .696 10.75 10.75 0 0 1-19.876 0Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg id="eyeSvgOff" style="display: none;" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+              <line x1="2" y1="2" x2="22" y2="22"/>
+            </svg>
+          </button>
         </div>
+        <div class="input-hint">Cliquez sur l'icône de l'œil pour vérifier votre saisie</div>
       </div>
 
       <button type="button" id="btnLogin" class="btn-submit">
         <span>Ouvrir mon dossier</span>
-        <span>→</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
 
       <div id="errorBox" class="error-box"></div>
-    </div>
 
-    <!-- ESPACE ÉLÈVE (DÉVERROUILLÉ) -->
-    <div id="dashStudent" class="card" style="display: none;">
-      <div style="font-size: 11px; font-weight: 800; color: #059669; margin-bottom: 6px; text-transform: uppercase;">
-        ● Dossier sécurisé ouvert
-      </div>
-      <h2 id="studentName" style="font-size: 18px; font-weight: 800; margin-bottom: 2px;"></h2>
-      <p id="studentClass" style="font-size: 12px; opacity: 0.75; margin-bottom: 20px;"></p>
-
-      <div>
-        <a id="linkDropbox" href="#" target="_blank" class="action-btn btn-evals">
-          <span>📂 Mes copies & évaluations</span>
-          <span>↗</span>
-        </a>
-
-        <a id="linkDocs" href="#" target="_blank" class="action-btn btn-docs">
-          <span>📚 Documents (Cours, DM...)</span>
-          <span>↗</span>
-        </a>
-      </div>
-
-      <div style="margin-top: 20px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 11px; opacity: 0.6;">Session sécurisée</span>
-        <button type="button" id="btnLogout" style="background: none; border: none; color: #dc2626; font-size: 12px; font-weight: 700; cursor: pointer;">
-          Se déconnecter
+      <div class="card-footer-pwa">
+        <span class="pwa-badge">
+          <span class="pwa-dot"></span>
+          Connexion directe & hors-ligne
+        </span>
+        <button type="button" id="btnPwa" class="btn-pwa-install">
+          📲 Installer l'application
         </button>
       </div>
     </div>
 
-    <!-- BOUTON D'INSTALLATION SMARTPHONE PWA -->
-    <div>
-      <button type="button" id="btnPwa" class="btn-pwa">
-        <span>📲</span>
-        <span>Installer sur l'écran d'accueil</span>
-      </button>
+    <!-- ESPACE ÉLÈVE (DÉVERROUILLÉ) -->
+    <div id="dashStudent" class="card" style="display: none;">
+      <div class="dash-header">
+        <div>
+          <div class="dash-status-pill">
+            <span class="dash-pulse-dot"></span>
+            Dossier sécurisé ouvert
+          </div>
+          <h2 id="studentName" class="dash-student-name"></h2>
+          <p id="studentClass" class="dash-student-class"></p>
+        </div>
+        <div id="studentInitials" class="dash-avatar-badge"></div>
+      </div>
+
+      <div class="dash-actions">
+        <a id="linkDropbox" href="#" target="_blank" class="btn-dash-dropbox">
+          <div class="action-left">
+            <div class="action-icon-box green">📂</div>
+            <div class="action-texts">
+              <h4>Mes copies & évaluations</h4>
+              <p>Consulter toutes mes copies corrigées</p>
+            </div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+
+        <a id="linkDocs" href="#" target="_blank" class="btn-dash-docs">
+          <div class="action-left">
+            <div class="action-icon-box white">📚</div>
+            <div class="action-texts">
+              <h4>Documents du cours</h4>
+              <p>Polycopiés, fiches méthode & devoirs</p>
+            </div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+        </a>
+      </div>
+
+      <div class="cloud-info-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <p>Toutes vos évaluations corrigées et annotées par votre professeur sont stockées dans votre dossier cloud personnel. Cliquez ci-dessus pour les ouvrir ou les télécharger.</p>
+      </div>
+
+      <div class="dash-footer">
+        <span>Session chiffrée de bout en bout</span>
+        <button type="button" id="btnLogout" class="btn-logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Se déconnecter
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- MODAL D'AIDE INSTALLATION SMARTPHONE -->
+  <!-- MODAL D'AIDE INSTALLATION SMARTPHONE PWA -->
   <div id="modalPwa" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-title">
@@ -897,15 +1282,15 @@ ${
 
       <!-- Guide iOS (iPhone / iPad) -->
       <div id="modalIosContent">
-        <div id="iosWebviewNotice" style="display: none; padding: 8px; border-radius: 8px; background: #fef3c7; border: 1px solid #fde047; color: #854d0e; font-size: 11px; margin-bottom: 10px;">
+        <div id="iosWebviewNotice" style="display: none; padding: 10px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fde68a; font-size: 11px; margin-bottom: 12px;">
           ⚠️ Vous êtes dans un navigateur interne : touchez l'icône 🧭 ou <strong>Safari</strong> en bas à droite pour ouvrir la page dans Safari.
         </div>
         <p style="font-size: 12px; opacity: 0.8; margin-bottom: 12px;">Pour créer l'icône sur votre écran d'accueil iPhone :</p>
         <div class="modal-step">
-          1. Touchez le bouton <strong>Partager</strong> <kbd style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">⎋ / [ ↑ ]</kbd> en bas de Safari.
+          1. Touchez le bouton <strong>Partager</strong> <kbd style="background: rgba(255, 255, 255, 0.15); padding: 2px 6px; border-radius: 4px; font-family: monospace;">⎋ / [ ↑ ]</kbd> en bas de Safari.
         </div>
         <div class="modal-step">
-          2. Faites défiler vers le bas et touchez <strong>« Sur l'écran d'accueil »</strong> <kbd style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">➕</kbd>.
+          2. Faites défiler vers le bas et touchez <strong>« Sur l'écran d'accueil »</strong> <kbd style="background: rgba(255, 255, 255, 0.15); padding: 2px 6px; border-radius: 4px; font-family: monospace;">➕</kbd>.
         </div>
       </div>
 
@@ -913,7 +1298,7 @@ ${
       <div id="modalGenericContent" style="display: none;">
         <p style="font-size: 12px; opacity: 0.8; margin-bottom: 12px;">Pour ajouter ce portail à votre écran d'accueil :</p>
         <div class="modal-step">
-          1. Touchez le menu <kbd style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">⋮</kbd> en haut à droite de votre navigateur.
+          1. Touchez le menu <kbd style="background: rgba(255, 255, 255, 0.15); padding: 2px 6px; border-radius: 4px; font-family: monospace;">⋮</kbd> en haut à droite de votre navigateur.
         </div>
         <div class="modal-step">
           2. Choisissez <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.

@@ -1,8 +1,8 @@
 [package]
 name = "droopy"
-version = "5.0.0-dev"
+version = "5.0.0"
 description = "Droopy - DROpbox cOPY"
-authors = ["Raphael Rigaud <rigaudr.dev@gmail.com>"]
+authors = ["Droopy Team"]
 license = "MIT"
 edition = "2021"
 
@@ -18,3 +18,4 @@ serde_json = "1.0"
 rfd = "0.15"
 arboard = "3.4"
 base64 = "0.22"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "json"] }

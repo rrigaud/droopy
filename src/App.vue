@@ -14,7 +14,7 @@
       :step2Completed="step2Completed"
       :step3Completed="step3Completed"
       :sourceFolder="sourceFolder"
-      @open-settings="settingsVisible = true"
+      @open-settings="openSettings('general')"
       @change-step="handleChangeStep"
     />
 
@@ -26,6 +26,8 @@
         :students="students"
         :sourceFolder="sourceFolder"
         :isAllOk="isStep0AllOk"
+        :portalLastGeneratedAt="portalLastGeneratedAt"
+        :studentsLastSyncedAt="studentsLastSyncedAt"
         @open-csv-picker="handleOpenCsvPicker"
         @go-step-1="goToStep1"
         @update-students="handleUpdateStudents"
@@ -65,6 +67,7 @@
     <SettingsDialog
       v-model:visible="settingsVisible"
       :sourceFolder="sourceFolder"
+      :initialTab="settingsInitialTab"
       @update:sourceFolder="handleSourceFolderChanged"
       @themeChanged="handleThemeChanged"
     />
@@ -73,6 +76,18 @@
       v-model:visible="csvImportVisible"
       :csvText="currentCsvText"
       @import-students="handleImportStudentsFromCsv"
+    />
+
+    <!-- Écran de démarrage & Checklist séquentielle (Splash Screen) -->
+    <SplashScreen
+      :visible="splashVisible"
+      :steps="splashSteps"
+      :progressPercent="splashProgress"
+      :currentSubtitle="splashSubtitle"
+      :actionBanner="splashAction"
+      :allOk="splashAllOk"
+      @action="handleSplashAction"
+      @close="splashVisible = false"
     />
 
     <!-- Boîte de dialogue de succès : Génération Portail Web -->
@@ -155,6 +170,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import HeaderBar from './components/HeaderBar.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
 import CsvImportDialog from './components/CsvImportDialog.vue';
+import SplashScreen from './components/SplashScreen.vue';
 import Step0Students from './components/Step0Students.vue';
 import Step1Evaluation from './components/Step1Evaluation.vue';
 import Step2Identification from './components/Step2Identification.vue';
@@ -175,9 +191,57 @@ const confirm = useConfirm();
 const activeStep = ref(0);
 const sourceFolder = ref(storage.getSourceFolder());
 const settingsVisible = ref(false);
+const settingsInitialTab = ref('general');
 const csvImportVisible = ref(false);
 const currentCsvText = ref('');
 const hasPromptedUrlCleanup = ref(false);
+
+function openSettings(tab = 'general') {
+  settingsInitialTab.value = tab;
+  settingsVisible.value = true;
+}
+
+// État de l'écran de démarrage & checklist séquentielle (Splash Screen)
+const splashVisible = ref(true);
+const splashProgress = ref(15);
+const splashSubtitle = ref('Initialisation de votre environnement enseignant...');
+const splashAllOk = ref(false);
+const splashAction = ref(null);
+
+const splashSteps = ref({
+  step1: {
+    status: 'running',
+    desc: 'Vérification du dossier et des paramètres...',
+    badge: 'En cours...',
+  },
+  step2: {
+    status: 'waiting',
+    desc: 'Scan des dossiers de classes...',
+    badge: 'En attente',
+  },
+  step3: {
+    status: 'waiting',
+    desc: 'Contrôle des liens de consultation...',
+    badge: 'En attente',
+  },
+  step4: {
+    status: 'waiting',
+    desc: 'Contrôle de version en ligne...',
+    badge: 'En attente',
+  },
+});
+
+function handleSplashAction(type) {
+  splashVisible.value = false;
+  if (type === 'source' || type === 'dropbox') {
+    activeStep.value = 0;
+    openSettings('general');
+  } else if (type === 'students') {
+    activeStep.value = 0;
+  } else if (type === 'portal') {
+    activeStep.value = 0;
+  }
+}
 
 const students = ref([]);
 const availableClasses = ref([]);
@@ -211,6 +275,10 @@ const currentEvaluationInfo = ref({});
 const currentCopies = ref([]);
 const identifiedCopies = ref([]);
 
+// État de synchronisation et génération portail
+const portalLastGeneratedAt = ref(null);
+const studentsLastSyncedAt = ref(null);
+
 const step1Completed = ref(false);
 const step2Completed = ref(false);
 const step3Completed = ref(false);
@@ -235,90 +303,361 @@ const currentClassStudents = computed(() => {
 });
 
 onMounted(async () => {
-  await loadAppData();
+  await loadAppData(true);
 });
 
-async function loadAppData() {
-  if (sourceFolder.value) {
-    try {
-      // Vérifier et créer l'arborescence requise dans le dossier Source
-      await studentService.ensureSourceStructure(sourceFolder.value);
-      // Initialise ou charge les préférences du portail pour ce dossier Source
-      await settingsService.loadSettings(sourceFolder.value);
+async function loadAppData(isStartup = false) {
+  if (isStartup) {
+    splashVisible.value = true;
+    splashAllOk.value = false;
+    splashAction.value = null;
+    splashProgress.value = 15;
+    splashSubtitle.value = 'Contrôle du dossier Source...';
+    splashSteps.value.step1 = {
+      status: 'running',
+      desc: 'Recherche du dossier Source configuré...',
+      badge: 'En cours...',
+    };
+    splashSteps.value.step2 = { status: 'waiting', desc: 'Scan des dossiers de classes...', badge: 'En attente' };
+    splashSteps.value.step3 = { status: 'waiting', desc: 'Contrôle des liens de consultation...', badge: 'En attente' };
+    splashSteps.value.step4 = { status: 'waiting', desc: 'Contrôle de version en ligne...', badge: 'En attente' };
+  }
 
-      const loaded = await studentService.loadStudents(sourceFolder.value);
-      // Assigner un ID unique permanent
-      const mapped = loaded.map((s, idx) => ({
-        ...s,
-        id: s.id !== undefined && s.id !== null ? Number(s.id) : idx + 1,
-      }));
+  // --- ÉTAPE 1 : DOSSIER SOURCE & PRÉFÉRENCES ---
+  if (!sourceFolder.value) {
+    if (isStartup) {
+      splashSteps.value.step1 = {
+        status: 'error',
+        desc: 'Aucun dossier Source valide configuré',
+        badge: 'Manquant',
+      };
+      splashProgress.value = 25;
+      splashSubtitle.value = 'Configuration du dossier Source requise';
+      splashAction.value = {
+        icon: '⚙️',
+        title: 'Dossier Source non sélectionné',
+        text: "Droopy a besoin de connaître l'emplacement de votre dossier Source (Dropbox) pour stocker les évaluations et dossiers élèves.",
+        btnText: 'Configurer le dossier Source dans les Paramètres',
+        type: 'source',
+        bgBorderClass: 'bg-rose-500/10 border-rose-500/40',
+        btnClass: 'bg-rose-600 shadow-rose-600/30',
+      };
+    } else {
+      openSettings('general');
+    }
+    activeStep.value = 0;
+    return;
+  }
 
-      // Vérification du statut Dropbox réel
-      const checked = await dropboxService.checkStudentsDropboxStatus(sourceFolder.value, mapped);
-      students.value = checked;
+  try {
+    // Vérifier et créer l'arborescence requise dans le dossier Source
+    await studentService.ensureSourceStructure(sourceFolder.value);
+    // Initialise ou charge les préférences du portail pour ce dossier Source
+    const s = await settingsService.loadSettings(sourceFolder.value);
+    portalLastGeneratedAt.value = s.portalLastGeneratedAt || null;
+    studentsLastSyncedAt.value = s.studentsLastSyncedAt || null;
 
-      // Détection des URLs orphelines (ex: URL présente alors que le dossier n'existe pas en ligne)
-      const orphanStudents = checked.filter((s) => s.urlDropbox && !s.isDropboxFolder);
+    if (isStartup) {
+      splashSteps.value.step1 = {
+        status: 'success',
+        desc: "Dossier 'Source' et préférences validés",
+        badge: 'OK',
+      };
+      splashProgress.value = 45;
+      splashSubtitle.value = 'Contrôle des dossiers élèves...';
+      splashSteps.value.step2 = {
+        status: 'running',
+        desc: 'Scan des dossiers élèves locaux...',
+        badge: 'En cours...',
+      };
+    }
 
-      if (orphanStudents.length > 0 && !hasPromptedUrlCleanup.value) {
-        hasPromptedUrlCleanup.value = true;
-        confirm.require({
-          message: `${orphanStudents.length} élève(s) possèdent une adresse URL Dropbox qui ne correspond à aucun dossier valide en ligne (ou votre dossier Source actuel est hors de Dropbox). Souhaitez-vous supprimer ces URLs non valides ?`,
-          header: 'Nettoyage des URLs Dropbox',
-          icon: 'pi pi-exclamation-triangle',
-          acceptLabel: 'Supprimer les URLs',
-          rejectLabel: 'Conserver (pour tests)',
-          acceptClass: 'p-button-danger',
-          rejectClass: 'p-button-secondary p-button-outlined',
-          accept: async () => {
-            const cleaned = checked.map((s) => {
-              if (s.urlDropbox && !s.isDropboxFolder) {
-                return { ...s, urlDropbox: '', isShared: false };
-              }
-              return s;
-            });
-            students.value = cleaned;
-            await studentService.saveStudents(sourceFolder.value, cleaned);
-            toast.add({
-              severity: 'success',
-              summary: 'Nettoyage terminé',
-              detail: `${orphanStudents.length} URL(s) Dropbox factice(s) ou orpheline(s) ont été supprimées.`,
-              life: 3500,
-            });
-          },
-          reject: () => {
-            toast.add({
-              severity: 'info',
-              summary: 'URLs conservées',
-              detail: 'Les URLs existantes ont été conservées pour vos tests.',
-              life: 3000,
-            });
-          },
-        });
+    // --- ÉTAPE 2 : DOSSIERS LOCAUX DES ÉLÈVES ---
+    const loaded = await studentService.loadStudents(sourceFolder.value);
+    // Assigner un ID unique permanent
+    const mapped = loaded.map((st, idx) => ({
+      ...st,
+      id: st.id !== undefined && st.id !== null ? Number(st.id) : idx + 1,
+    }));
+    students.value = mapped;
+
+    availableClasses.value = await studentService.getAvailableClasses(
+      sourceFolder.value,
+      mapped
+    );
+
+    const missingLocalFolders = mapped.filter((st) => !st.isFolder).length;
+
+    if (isStartup && mapped.length === 0) {
+      splashSteps.value.step2 = {
+        status: 'warning',
+        desc: 'Aucun élève importé pour le moment',
+        badge: 'À importer',
+      };
+      splashProgress.value = 50;
+      splashSubtitle.value = 'Importation des élèves requise';
+      splashAction.value = {
+        icon: '👥',
+        title: 'Importation des élèves requise',
+        text: "Aucun élève n'a encore été importé dans Droopy. Vous pouvez importer un fichier CSV pour commencer.",
+        btnText: 'Accéder à la gestion des élèves pour importer un CSV',
+        type: 'students',
+        bgBorderClass: 'bg-blue-500/10 border-blue-500/40',
+        btnClass: 'bg-blue-600 shadow-blue-600/30',
+      };
+      activeStep.value = 0;
+      return;
+    }
+
+    if (isStartup && missingLocalFolders > 0) {
+      splashSteps.value.step2 = {
+        status: 'warning',
+        desc: `${missingLocalFolders} dossier(s) élève(s) manquant(s) (${mapped.length - missingLocalFolders}/${mapped.length} prêts)`,
+        badge: 'À synchroniser',
+      };
+      splashProgress.value = 50;
+      splashSubtitle.value = "Des dossiers d'élèves nécessitent une synchronisation";
+      splashAction.value = {
+        icon: '🔄',
+        title: 'Synchronisation des dossiers nécessaire',
+        text: `${missingLocalFolders} élève(s) n'ont pas encore leur dossier local créé dans le dossier Source.`,
+        btnText: 'Ouvrir la gestion des élèves pour synchroniser',
+        type: 'students',
+        bgBorderClass: 'bg-blue-500/10 border-blue-500/40',
+        btnClass: 'bg-blue-600 shadow-blue-600/30',
+      };
+      activeStep.value = 0;
+      return;
+    }
+
+    if (isStartup) {
+      splashSteps.value.step2 = {
+        status: 'success',
+        desc: `${mapped.length}/${mapped.length} dossiers élèves trouvés et conformes`,
+        badge: 'OK',
+      };
+      splashProgress.value = 70;
+      splashSubtitle.value = 'Contrôle du compte Dropbox...';
+      splashSteps.value.step3 = {
+        status: 'running',
+        desc: 'Vérification du compte Dropbox et des partages...',
+        badge: 'En cours...',
+      };
+    }
+
+    // --- ÉTAPE 3 : COMPTE DROPBOX & PARTAGES ---
+    const hasDropboxAuth = !!storage.getDropboxRefreshToken();
+    if (isStartup && !hasDropboxAuth) {
+      splashSteps.value.step3 = {
+        status: 'warning',
+        desc: 'Compte Dropbox déconnecté ou non configuré',
+        badge: 'Non connecté',
+      };
+      splashProgress.value = 75;
+      splashSubtitle.value = 'La synchronisation en ligne nécessite une connexion Dropbox';
+      splashAction.value = {
+        icon: '☁️',
+        title: 'Compte Dropbox déconnecté',
+        text: "Droopy ne peut pas vérifier ni générer les liens de partage de vos élèves car aucun compte Dropbox n'est authentifié.",
+        btnText: 'Connecter mon compte Dropbox dans les Paramètres',
+        type: 'dropbox',
+        bgBorderClass: 'bg-sky-500/10 border-sky-500/40',
+        btnClass: 'bg-sky-600 shadow-sky-600/30',
+      };
+      activeStep.value = 0;
+      return;
+    }
+
+    // Vérification du statut Dropbox réel
+    const checked = await dropboxService.checkStudentsDropboxStatus(sourceFolder.value, mapped);
+    students.value = checked;
+
+    const unsharedCount = checked.filter((st) => !st.urlDropbox).length;
+
+    if (isStartup && unsharedCount > 0) {
+      splashSteps.value.step3 = {
+        status: 'warning',
+        desc: `${unsharedCount} partage(s) Dropbox à créer`,
+        badge: 'À synchroniser',
+      };
+      splashProgress.value = 75;
+      splashSubtitle.value = 'Création des partages Dropbox requise';
+      splashAction.value = {
+        icon: '🔄',
+        title: 'Création des partages Dropbox requise',
+        text: `${unsharedCount} élève(s) n'ont pas encore leur lien de partage Dropbox créé.`,
+        btnText: 'Ouvrir la gestion des élèves pour synchroniser',
+        type: 'students',
+        bgBorderClass: 'bg-blue-500/10 border-blue-500/40',
+        btnClass: 'bg-blue-600 shadow-blue-600/30',
+      };
+      activeStep.value = 0;
+      return;
+    }
+
+    if (isStartup) {
+      splashSteps.value.step3 = {
+        status: 'success',
+        desc: `Compte connecté • ${checked.length} partages actifs`,
+        badge: 'OK',
+      };
+      splashProgress.value = 88;
+      splashSubtitle.value = 'Contrôle du portail web...';
+      splashSteps.value.step4 = {
+        status: 'running',
+        desc: 'Contrôle de version en ligne...',
+        badge: 'En cours...',
+      };
+    }
+
+    // --- ÉTAPE 4 : PORTAIL DE CONNEXION WEB ---
+    const portalUrl = s.portalUrl || storage.getPortalUrl() || '';
+    const portalLastGen = portalLastGeneratedAt.value;
+
+    let isPortalOutdated = false;
+    let isPortalNeverGenerated = false;
+
+    if (!portalLastGen) {
+      isPortalNeverGenerated = true;
+    } else if (portalUrl && portalUrl.startsWith('http')) {
+      try {
+        const onlineDate = await nativeFs.checkOnlinePortalVersion(portalUrl);
+        if (onlineDate) {
+          const onlineTime = new Date(onlineDate).getTime();
+          const localGenTime = new Date(portalLastGen).getTime();
+          if (localGenTime - onlineTime > 1000) {
+            isPortalOutdated = true;
+          }
+        }
+      } catch (e) {
+        console.warn('Vérification en ligne du portail échouée:', e);
       }
+    }
 
-      availableClasses.value = await studentService.getAvailableClasses(
-        sourceFolder.value,
-        students.value
-      );
+    if (isStartup && isPortalNeverGenerated) {
+      splashSteps.value.step4 = {
+        status: 'warning',
+        desc: "Le portail web n'a pas encore été généré",
+        badge: 'À générer',
+      };
+      splashProgress.value = 95;
+      splashSubtitle.value = 'Le portail web doit être généré';
+      splashAction.value = {
+        icon: '🌐',
+        title: 'Génération du portail requise',
+        text: "Le portail web de connexion pour vos élèves n'a pas encore été créé.",
+        btnText: 'Mettre à jour le portail de connexion',
+        type: 'portal',
+        bgBorderClass: 'bg-purple-500/10 border-purple-500/40',
+        btnClass: 'bg-purple-600 shadow-purple-600/30',
+      };
+      activeStep.value = 0;
+      return;
+    }
 
-      // Vérification du démarrage selon spécification:
-      // "Au démarrage, le logiciel doit vérifier que toutes les données nécessaires
-      // sont bien renseignées et présentes. Si c'est le cas, on doit valider le Step 0
-      // et passer directement au Step 1."
-      if (isStep0AllOk.value) {
-        activeStep.value = 1;
-      } else {
-        activeStep.value = 0;
-      }
-    } catch (e) {
-      console.error('Erreur chargement données au démarrage:', e);
+    if (isStartup && isPortalOutdated) {
+      splashSteps.value.step4 = {
+        status: 'warning',
+        desc: 'Portail en ligne non à jour (dernière génération non déployée)',
+        badge: 'À déployer',
+      };
+      splashProgress.value = 95;
+      splashSubtitle.value = "Le portail en ligne n'est pas synchronisé";
+      splashAction.value = {
+        icon: '🌐',
+        title: 'Mise à jour du portail web requise',
+        text: 'Droopy a détecté que le portail actuellement en ligne ne contient pas les dernières modifications de vos élèves.',
+        btnText: 'Mettre à jour le portail de connexion',
+        type: 'portal',
+        bgBorderClass: 'bg-purple-500/10 border-purple-500/40',
+        btnClass: 'bg-purple-600 shadow-purple-600/30',
+      };
+      activeStep.value = 0;
+      return;
+    }
+
+    if (isStartup) {
+      splashSteps.value.step4 = {
+        status: 'success',
+        desc: 'Portail web en ligne à jour (version synchronisée)',
+        badge: 'OK',
+      };
+      splashProgress.value = 100;
+      splashSubtitle.value = 'Tout est prêt !';
+      splashAllOk.value = true;
+
+      setTimeout(() => {
+        splashVisible.value = false;
+      }, 650);
+    }
+
+    // Détection des URLs orphelines (ex: URL présente alors que le dossier n'existe pas en ligne)
+    const orphanStudents = checked.filter((st) => st.urlDropbox && !st.isDropboxFolder);
+    if (orphanStudents.length > 0 && !hasPromptedUrlCleanup.value) {
+      setTimeout(() => {
+        if (!hasPromptedUrlCleanup.value) {
+          hasPromptedUrlCleanup.value = true;
+          confirm.require({
+            message: `${orphanStudents.length} élève(s) possèdent une adresse URL Dropbox qui ne correspond à aucun dossier valide en ligne (ou votre dossier Source actuel est hors de Dropbox). Souhaitez-vous supprimer ces URLs non valides ?`,
+            header: 'Nettoyage des URLs Dropbox',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Supprimer les URLs',
+            rejectLabel: 'Conserver (pour tests)',
+            acceptClass: 'p-button-danger',
+            rejectClass: 'p-button-secondary p-button-outlined',
+            accept: async () => {
+              const cleaned = checked.map((st) => {
+                if (st.urlDropbox && !st.isDropboxFolder) {
+                  return { ...st, urlDropbox: '', isShared: false };
+                }
+                return st;
+              });
+              students.value = cleaned;
+              await studentService.saveStudents(sourceFolder.value, cleaned);
+              toast.add({
+                severity: 'success',
+                summary: 'Nettoyage terminé',
+                detail: `${orphanStudents.length} URL(s) Dropbox factice(s) ou orpheline(s) ont été supprimées.`,
+                life: 3500,
+              });
+            },
+            reject: () => {
+              toast.add({
+                severity: 'info',
+                summary: 'URLs conservées',
+                detail: 'Les URLs existantes ont été conservées pour vos tests.',
+                life: 3000,
+              });
+            },
+          });
+        }
+      }, 1200);
+    }
+
+    if (isStep0AllOk.value) {
+      activeStep.value = 1;
+    } else {
       activeStep.value = 0;
     }
-  } else {
-    // Si aucun dossier source n'est configuré, ouvrir les paramètres
+  } catch (e) {
+    console.error('Erreur chargement données au démarrage:', e);
+    if (isStartup) {
+      splashSteps.value.step1 = {
+        status: 'error',
+        desc: `Erreur inattendue : ${e.message || e}`,
+        badge: 'Erreur',
+      };
+      splashAction.value = {
+        icon: '⚠️',
+        title: 'Erreur au démarrage',
+        text: `Une anomalie est survenue : ${e.message || e}`,
+        btnText: 'Ouvrir les Paramètres',
+        type: 'source',
+        bgBorderClass: 'bg-rose-500/10 border-rose-500/40',
+        btnClass: 'bg-rose-600 shadow-rose-600/30',
+      };
+    }
     activeStep.value = 0;
-    settingsVisible.value = true;
   }
 }
 
@@ -514,6 +853,9 @@ async function handleSyncFoldersShares() {
 
     // Sauvegarde persistante dans eleves.json
     await studentService.saveStudents(sourceFolder.value, updated);
+    const now = new Date().toISOString();
+    await settingsService.recordStudentsSynced(sourceFolder.value);
+    studentsLastSyncedAt.value = now;
     students.value = [...updated];
 
     // Rapport d'état selon la configuration
@@ -573,6 +915,7 @@ async function handleGeneratePortal() {
 
   try {
     const res = await portalGeneratorService.generatePortal(sourceFolder.value, students.value);
+    portalLastGeneratedAt.value = res.generatedAt || new Date().toISOString();
 
     portalSuccessData.value = {
       path: res.path,

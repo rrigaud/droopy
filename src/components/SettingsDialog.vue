@@ -45,8 +45,9 @@
     <div v-show="activeTab === 'general'" class="space-y-6 pt-1">
       <!-- Dossier Source -->
       <div>
-        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200">
-          Dossier "Source"
+        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+          <i class="pi pi-folder text-blue-500" />
+          <span>Dossier "Source"</span>
         </label>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2.5">
           Contient la base élèves (<code class="text-blue-600 dark:text-blue-400 font-mono">eleves.json</code>), le dossier <code class="text-blue-600 dark:text-blue-400 font-mono">Documents</code> (cours, DM) et les <code class="text-blue-600 dark:text-blue-400 font-mono">Evaluations</code>.
@@ -67,45 +68,12 @@
         </div>
       </div>
 
-      <!-- Thème de Droopy -->
+      <!-- Compte Dropbox -->
       <div class="border-t border-gray-200 dark:border-gray-700 pt-5">
-        <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-200">
-          Thème de l'interface Droopy
-        </label>
-        <div class="flex gap-3">
-          <Button
-            label="Clair"
-            icon="pi pi-sun"
-            :class="[
-              'flex-1 p-button-outlined',
-              currentTheme === 'light' ? '!bg-blue-600 !text-white !border-blue-600 font-semibold shadow-sm' : ''
-            ]"
-            @click="handleThemeChange('light')"
-          />
-          <Button
-            label="Sombre"
-            icon="pi pi-moon"
-            :class="[
-              'flex-1 p-button-outlined',
-              currentTheme === 'dark' ? '!bg-blue-600 !text-white !border-blue-600 font-semibold shadow-sm' : ''
-            ]"
-            @click="handleThemeChange('dark')"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- ONGLET 2 : PORTAIL DE CONNEXION            -->
-    <!-- ========================================== -->
-    <div v-show="activeTab === 'portal'" class="space-y-5 pt-1">
-      
-      <!-- 1. Compte Dropbox -->
-      <div>
         <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200 flex items-center justify-between">
           <span class="flex items-center gap-1.5">
             <i class="pi pi-box text-blue-500" />
-            Compte Dropbox (Création des partages élèves)
+            Compte Dropbox
           </span>
           <span v-if="isConnectedToDropbox" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1">
             <i class="pi pi-check text-[10px]" /> Connecté
@@ -161,25 +129,68 @@
             </div>
           </div>
         </div>
+
+        <!-- Note d'information Dropbox -->
+        <div class="p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 text-blue-800 dark:text-blue-300 text-xs flex items-start gap-2 mt-3">
+          <i class="pi pi-info-circle text-blue-500 mt-0.5 shrink-0" />
+          <span>
+            Utilisé pour la création automatique des partages des dossiers élèves (en lecture seule).
+          </span>
+        </div>
       </div>
 
-      <!-- 2. URL du Portail -->
-      <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200">
-          URL du Portail de connexion élève
+      <!-- Thème de Droopy -->
+      <div class="border-t border-gray-200 dark:border-gray-700 pt-5">
+        <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+          <i class="pi pi-palette text-blue-500" />
+          <span>Thème de l'interface Droopy</span>
+        </label>
+        <div class="flex gap-3">
+          <Button
+            label="Clair"
+            icon="pi pi-sun"
+            :class="[
+              'flex-1 p-button-outlined',
+              currentTheme === 'light' ? '!bg-blue-600 !text-white !border-blue-600 font-semibold shadow-sm' : ''
+            ]"
+            @click="handleThemeChange('light')"
+          />
+          <Button
+            label="Sombre"
+            icon="pi pi-moon"
+            :class="[
+              'flex-1 p-button-outlined',
+              currentTheme === 'dark' ? '!bg-blue-600 !text-white !border-blue-600 font-semibold shadow-sm' : ''
+            ]"
+            @click="handleThemeChange('dark')"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ONGLET 2 : PORTAIL DE CONNEXION            -->
+    <!-- ========================================== -->
+    <div v-show="activeTab === 'portal'" class="space-y-5 pt-1">
+      
+      <!-- 1. URL du Portail -->
+      <div>
+        <label class="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+          <i class="pi pi-globe text-purple-600 dark:text-purple-400" />
+          <span>URL du Portail de connexion élève</span>
         </label>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-          Adresse web publique où se connectent les élèves (ex: <span class="font-mono text-purple-600 dark:text-purple-400 font-semibold">https://espace-eleves.fr</span> ou <span class="font-mono text-purple-600 dark:text-purple-400">https://mon-portail.fr</span>).
+          Adresse web publique où se connectent les élèves (ex: <span class="font-mono text-purple-600 dark:text-purple-400 font-semibold">https://portail-eleve.fr</span>).
         </p>
         <InputText
           v-model="portalUrl"
           @input="handlePortalUrlChange"
-          placeholder="https://espace-eleves.fr/"
+          placeholder="https://portail-eleve.fr"
           class="w-full text-sm font-mono"
         />
       </div>
 
-      <!-- 3. Personnalisation du Portail -->
+      <!-- 2. Personnalisation du Portail -->
       <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -251,7 +262,7 @@
             <InputText
               v-model="portalTitle"
               @input="handlePortalTitleChange"
-              placeholder="ex: Espace-Eleves.fr"
+              placeholder="ex: Portail Élèves"
               class="w-full text-xs"
             />
           </div>
@@ -273,70 +284,49 @@
           <label class="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
             Thème graphique du portail élève
           </label>
-          <div class="grid grid-cols-3 gap-2.5">
-            <!-- Thème Emeraude (Défaut) -->
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Thème Emeraude & Constellation (Défaut) -->
             <button
               type="button"
               @click="handlePortalThemeChange('emeraude')"
               :class="[
-                'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
+                'p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
                 portalTheme === 'emeraude'
                   ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500'
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 bg-white dark:bg-gray-800'
               ]"
             >
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-bold text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
-                  🌿 Émeraude
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-bold text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                  🌿 Émeraude & Constellation
                 </span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-semibold">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-semibold">
                   Défaut
                 </span>
               </div>
-              <p class="text-[10px] text-gray-500 dark:text-gray-400">
-                Menthe & turquoise, bulles d'air flottantes.
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                Fond vert profond, verre dépoli, néon menthe et particules scolaires flottantes.
               </p>
             </button>
 
-            <!-- Thème Sombre -->
+            <!-- Thème Azur Horizon -->
             <button
               type="button"
-              @click="handlePortalThemeChange('sombre')"
+              @click="handlePortalThemeChange('azur')"
               :class="[
-                'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-                portalTheme === 'sombre'
-                  ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/40 ring-2 ring-indigo-500'
+                'p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
+                portalTheme === 'azur'
+                  ? 'border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 ring-2 ring-sky-400'
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 bg-white dark:bg-gray-800'
               ]"
             >
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-bold text-xs text-indigo-800 dark:text-indigo-300 flex items-center gap-1">
-                  🌙 Sombre
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-bold text-xs text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
+                  ☁️ Azur Horizon
                 </span>
               </div>
-              <p class="text-[10px] text-gray-500 dark:text-gray-400">
-                Bleu nuit profond, ambiance feutrée et moderne.
-              </p>
-            </button>
-
-            <!-- Thème Clair -->
-            <button
-              type="button"
-              @click="handlePortalThemeChange('clair')"
-              :class="[
-                'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-                portalTheme === 'clair'
-                  ? 'border-slate-800 dark:border-slate-300 bg-slate-100 dark:bg-slate-800 ring-2 ring-slate-400'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 bg-white dark:bg-gray-800'
-              ]"
-            >
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                  ☀️ Clair
-                </span>
-              </div>
-              <p class="text-[10px] text-gray-500 dark:text-gray-400">
-                Design épuré et blanc pur, ultra-léger.
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                Bleu nuit & azur cloud Dropbox, verre dépoli et particules cyan luminescentes.
               </p>
             </button>
           </div>
@@ -460,13 +450,26 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  initialTab: {
+    type: String,
+    default: 'general',
+  },
 });
 
 const emit = defineEmits(['update:sourceFolder', 'update:visible', 'themeChanged']);
 
 const toast = useToast();
 
-const activeTab = ref('general');
+const activeTab = ref(props.initialTab || 'general');
+
+watch(
+  () => props.visible,
+  (val) => {
+    if (val && props.initialTab) {
+      activeTab.value = props.initialTab;
+    }
+  }
+);
 const fileInputRef = ref(null);
 const showSecurityInfoDialog = ref(false);
 

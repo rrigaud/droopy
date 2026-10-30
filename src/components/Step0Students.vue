@@ -25,21 +25,61 @@
         <Button
           label="Synchroniser les dossiers & partages"
           icon="pi pi-sync"
-          severity="info"
-          class="p-button-outlined"
+          :severity="isSyncNeeded ? 'primary' : 'info'"
+          :class="[
+            isSyncNeeded
+              ? '!bg-blue-600 !hover:bg-blue-700 !text-white !border-blue-600 font-semibold shadow-sm animate-pulse'
+              : 'p-button-outlined'
+          ]"
           @click="handleSyncFoldersAndShares"
-          v-tooltip.bottom="'Crée les dossiers locaux, mots de passe et partages manquants sans écraser l\'existant'"
-        />
+          v-tooltip.bottom="syncTooltipText"
+        >
+          <template #default>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-sync" />
+              <span>Synchroniser les dossiers & partages</span>
+              <span
+                v-if="pendingSyncCount > 0"
+                class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-white text-blue-700 dark:bg-blue-100 shadow-xs"
+              >
+                {{ pendingSyncCount }}
+              </span>
+            </div>
+          </template>
+        </Button>
 
         <!-- Bouton séparé : Générer le portail de connexion -->
         <Button
           label="Générer le portail de connexion"
           icon="pi pi-globe"
           severity="help"
-          class="p-button-outlined"
+          :class="portalButtonClass"
           @click="handleGeneratePortal"
-          v-tooltip.bottom="'Génère le dossier autonome Portail-Web prêt à être mis en ligne sur votre hébergement web'"
-        />
+          v-tooltip.bottom="portalButtonTooltip"
+        >
+          <template #default>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-globe" />
+              <span>Générer le portail de connexion</span>
+              <!-- Badge Alerte Oubli de déploiement en ligne -->
+              <span
+                v-if="!isSyncNeeded && !isPortalGenerationNeeded && onlinePortalStatus === 'outdated'"
+                class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white flex items-center gap-1 shadow-xs"
+              >
+                <i class="pi pi-cloud-upload text-[10px]" />
+                À déployer
+              </span>
+              <!-- Badge Portail à jour en ligne -->
+              <span
+                v-else-if="!isSyncNeeded && !isPortalGenerationNeeded && onlinePortalStatus === 'synced'"
+                class="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 flex items-center gap-1"
+              >
+                <i class="pi pi-check text-[9px]" />
+                En ligne
+              </span>
+            </div>
+          </template>
+        </Button>
       </div>
 
       <!-- Right Action: Statut et Charger des copies -->
@@ -435,7 +475,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { FilterMatchMode } from '@primevue/core/api';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -453,6 +493,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { studentService } from '../services/studentService';
 import { pdfService } from '../services/pdfService';
 import { storage } from '../services/storage';
+import { settingsService } from '../services/settingsService';
 import { generateRandomPassword } from '../services/dictionary';
 import { nativeFs, isTauri } from '../services/fs';
 import { sanitizeFolderName } from '../services/accentUtils';
@@ -469,6 +510,14 @@ const props = defineProps({
   isAllOk: {
     type: Boolean,
     default: false,
+  },
+  portalLastGeneratedAt: {
+    type: String,
+    default: null,
+  },
+  studentsLastSyncedAt: {
+    type: String,
+    default: null,
   },
 });
 
@@ -551,6 +600,219 @@ const missingConditionMessage = computed(() => {
   return '';
 });
 
+// ==========================================
+// 1. Détection de synchronisation nécessaire
+// ==========================================
+const pendingSyncCount = computed(() => {
+  if (!props.students || props.students.length === 0) return 0;
+  const isConnected = storage.isDropboxConnected();
+  let count = 0;
+  for (const s of props.students) {
+    const missingFolder = !s.isFolder;
+    const missingPwd = !s.password;
+    const missingDropbox = isConnected && (!s.urlDropbox || !s.urlDropbox.startsWith('https://www.dropbox.com/'));
+    if (missingFolder || missingPwd || missingDropbox) {
+      count++;
+    }
+  }
+  return count;
+});
+
+const isSyncNeeded = computed(() => pendingSyncCount.value > 0);
+
+const syncTooltipText = computed(() => {
+  if (isSyncNeeded.value) {
+    return `${pendingSyncCount.value} changement(s) détecté(s) : il est nécessaire de synchroniser les dossiers et partages.`;
+  }
+  return "Crée les dossiers locaux, mots de passe et partages manquants sans écraser l'existant";
+});
+
+// Notification discrète dès détection de changements
+let previousPendingCount = 0;
+watch(pendingSyncCount, (newVal) => {
+  if (newVal > 0 && newVal !== previousPendingCount) {
+    toast.add({
+      severity: 'info',
+      summary: 'Modifications détectées',
+      detail: `${newVal} changement(s) détecté(s) : pensez à synchroniser les dossiers et partages.`,
+      life: 4000,
+    });
+  }
+  previousPendingCount = newVal;
+});
+
+// ==========================================
+// 2. Détection Portail Local & En Ligne
+// ==========================================
+const onlinePortalUpdatedAt = ref(null);
+const isCheckingOnlinePortal = ref(false);
+const portalUrl = ref('');
+const localPortalSettings = ref({});
+
+function formatDateTime(isoString) {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return isoString;
+  }
+}
+
+async function loadPortalInfo() {
+  if (!props.sourceFolder) return;
+  try {
+    const s = await settingsService.loadSettings(props.sourceFolder);
+    localPortalSettings.value = s;
+    portalUrl.value = s.portalUrl || storage.getPortalUrl() || '';
+
+    if (effectivePortalLastGeneratedAt.value && portalUrl.value) {
+      await checkOnlinePortal();
+    }
+  } catch (e) {
+    console.warn('Erreur chargement paramètres portail:', e);
+  }
+}
+
+async function checkOnlinePortal() {
+  const url = portalUrl.value || storage.getPortalUrl();
+  if (!url || !url.startsWith('http')) {
+    onlinePortalUpdatedAt.value = null;
+    return;
+  }
+  isCheckingOnlinePortal.value = true;
+  try {
+    const res = await nativeFs.checkOnlinePortalVersion(url);
+    onlinePortalUpdatedAt.value = res;
+  } catch (e) {
+    console.warn('Erreur vérification en ligne du portail:', e);
+    onlinePortalUpdatedAt.value = null;
+  } finally {
+    isCheckingOnlinePortal.value = false;
+  }
+}
+
+const effectivePortalLastGeneratedAt = computed(() => {
+  return props.portalLastGeneratedAt || localPortalSettings.value.portalLastGeneratedAt || null;
+});
+
+const effectiveStudentsLastSyncedAt = computed(() => {
+  return props.studentsLastSyncedAt || localPortalSettings.value.studentsLastSyncedAt || null;
+});
+
+const effectiveStudentsLastModifiedAt = computed(() => {
+  return localPortalSettings.value.studentsLastModifiedAt || null;
+});
+
+const isPortalGenerationNeeded = computed(() => {
+  // Séquence : tant que la synchronisation n'est pas faite, on ne demande pas de générer
+  if (isSyncNeeded.value) return false;
+  if (!props.students || props.students.length === 0) return false;
+
+  // Si le portail local n'a jamais été généré
+  if (!effectivePortalLastGeneratedAt.value) return true;
+
+  const genTime = new Date(effectivePortalLastGeneratedAt.value).getTime();
+
+  // Si une synchronisation a eu lieu après la dernière génération
+  if (effectiveStudentsLastSyncedAt.value) {
+    const syncTime = new Date(effectiveStudentsLastSyncedAt.value).getTime();
+    if (syncTime > genTime + 1000) return true;
+  }
+
+  // Si des modifications ont eu lieu après la dernière génération
+  if (effectiveStudentsLastModifiedAt.value) {
+    const modTime = new Date(effectiveStudentsLastModifiedAt.value).getTime();
+    if (modTime > genTime + 1000) return true;
+  }
+
+  return false;
+});
+
+const onlinePortalStatus = computed(() => {
+  const url = portalUrl.value || storage.getPortalUrl();
+  if (!url || !url.startsWith('http')) return 'not_configured';
+  if (!effectivePortalLastGeneratedAt.value) return 'no_local';
+  if (isCheckingOnlinePortal.value) return 'checking';
+  if (!onlinePortalUpdatedAt.value) return 'unreachable';
+
+  const localTime = new Date(effectivePortalLastGeneratedAt.value).getTime();
+  const onlineTime = new Date(onlinePortalUpdatedAt.value).getTime();
+
+  // Si la version en ligne est antérieure à la génération locale (avec marge de 5 secondes)
+  if (onlineTime < localTime - 5000) {
+    return 'outdated';
+  }
+  return 'synced';
+});
+
+const portalButtonClass = computed(() => {
+  // 1. Si la synchronisation est requise, le bouton portail reste calme et discret
+  if (isSyncNeeded.value) {
+    return 'p-button-outlined opacity-60';
+  }
+
+  // 2. Si synchronisé mais portail non régénéré : violet plein + clignotement !
+  if (isPortalGenerationNeeded.value) {
+    return '!bg-purple-600 !hover:bg-purple-700 !text-white !border-purple-600 font-semibold shadow-sm animate-pulse';
+  }
+
+  // 3. Si portail généré mais non déployé en ligne : bordure ambre d'avertissement
+  if (onlinePortalStatus.value === 'outdated') {
+    return 'p-button-outlined !border-amber-500 !text-amber-700 dark:!text-amber-300 font-semibold bg-amber-50/50 dark:bg-amber-950/20';
+  }
+
+  // 4. Par défaut / en ligne à jour
+  return 'p-button-outlined';
+});
+
+const portalButtonTooltip = computed(() => {
+  if (isSyncNeeded.value) {
+    return 'Synchronisez d\'abord les dossiers et partages avant de générer le portail.';
+  }
+  if (isPortalGenerationNeeded.value) {
+    return 'Données élèves synchronisées : pensez à générer le portail de connexion.';
+  }
+  if (onlinePortalStatus.value === 'outdated') {
+    const localStr = formatDateTime(effectivePortalLastGeneratedAt.value);
+    const onlineStr = formatDateTime(onlinePortalUpdatedAt.value);
+    return `⚠️ Attention : vous avez oublié de mettre en ligne le dernier portail généré ! (Généré en local le ${localStr}, version en ligne du ${onlineStr})`;
+  }
+  if (onlinePortalStatus.value === 'synced') {
+    return `Portail en ligne synchronisé et à jour (déployé le ${formatDateTime(onlinePortalUpdatedAt.value)}).`;
+  }
+  if (effectivePortalLastGeneratedAt.value) {
+    return `Portail généré en local le ${formatDateTime(effectivePortalLastGeneratedAt.value)}. Prêt à être déployé sur votre hébergement.`;
+  }
+  return 'Génère le dossier autonome Portail-Web prêt à être mis en ligne sur votre hébergement web';
+});
+
+watch(() => props.portalLastGeneratedAt, async (newVal) => {
+  if (newVal) {
+    await loadPortalInfo();
+  }
+});
+
+watch(() => props.studentsLastSyncedAt, async () => {
+  await loadPortalInfo();
+});
+
+watch(() => props.sourceFolder, async (newVal) => {
+  if (newVal) {
+    await loadPortalInfo();
+  }
+});
+
+onMounted(async () => {
+  await loadPortalInfo();
+});
+
 // Student Form Dialog
 const studentDialogVisible = ref(false);
 const isEditingStudent = ref(false);
@@ -611,6 +873,11 @@ async function saveStudentForm() {
       (s) => s.id === editingOriginalStudent.value.id
     );
     if (idx !== -1) {
+      const orig = editingOriginalStudent.value;
+      const nameChanged = orig.name !== cleanedName;
+      const classChanged = (orig.classe || '').trim() !== studentForm.value.classe.trim();
+      const needsFolderRefresh = nameChanged || classChanged;
+
       updatedList[idx] = {
         ...updatedList[idx],
         classe: studentForm.value.classe.trim(),
@@ -618,7 +885,8 @@ async function saveStudentForm() {
         gender: studentForm.value.gender,
         login: studentForm.value.login.trim(),
         password: studentForm.value.password.trim(),
-        urlDropbox: studentForm.value.urlDropbox.trim(),
+        urlDropbox: (nameChanged || classChanged) ? '' : studentForm.value.urlDropbox.trim(),
+        isFolder: needsFolderRefresh ? false : updatedList[idx].isFolder,
       };
     }
   } else {
@@ -865,6 +1133,15 @@ function handleSyncFoldersAndShares() {
 }
 
 function handleGeneratePortal() {
+  if (isSyncNeeded.value) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Synchronisation requise',
+      detail: 'Veuillez d\'abord cliquer sur "Synchroniser les dossiers & partages" avant de générer le portail.',
+      life: 4000,
+    });
+    return;
+  }
   emit('generate-portal');
 }
 
