@@ -54,13 +54,16 @@
         <div class="space-y-2.5 relative z-10">
           <!-- Étape 1 : Dossier Source & Préférences -->
           <div :class="getStepClass(steps.step1)">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
               <div :class="getStepIconClass(steps.step1)">
                 <template v-if="steps.step1.status === 'running'">
                   <i class="pi pi-spin pi-spinner text-xs" />
                 </template>
                 <template v-else-if="steps.step1.status === 'success'">
                   <i class="pi pi-check text-xs font-bold" />
+                </template>
+                <template v-else-if="steps.step1.status === 'action' || steps.step1.showSelectBtn">
+                  <i class="pi pi-folder-open text-xs font-bold" />
                 </template>
                 <template v-else-if="steps.step1.status === 'error'">
                   <i class="pi pi-times text-xs font-bold" />
@@ -69,16 +72,27 @@
                   1
                 </template>
               </div>
-              <div>
-                <h4 class="text-xs font-bold text-gray-800 dark:text-white">
+              <div class="min-w-0">
+                <h4 class="text-xs font-bold text-gray-800 dark:text-white truncate">
                   Dossier Source & Préférences
                 </h4>
-                <p class="text-[11px] text-gray-500 dark:text-slate-400">
+                <p class="text-[11px] text-gray-500 dark:text-slate-400 truncate">
                   {{ steps.step1.desc }}
                 </p>
               </div>
             </div>
-            <span :class="getStepBadgeClass(steps.step1)">
+
+            <!-- Bouton de sélection directe du dossier Source -->
+            <button
+              v-if="steps.step1.showSelectBtn || steps.step1.status === 'action' || (steps.step1.status === 'error' && !actionBanner)"
+              type="button"
+              @click="$emit('select-source')"
+              class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ml-2"
+            >
+              <i class="pi pi-folder-open text-xs" />
+              <span>Choisir le dossier</span>
+            </button>
+            <span v-else :class="getStepBadgeClass(steps.step1)">
               {{ steps.step1.badge }}
             </span>
           </div>
@@ -259,7 +273,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['action', 'close']);
+defineEmits(['action', 'close', 'select-source']);
 
 function getStepClass(step) {
   const base = 'step-card p-3 rounded-2xl flex items-center justify-between transition-all duration-300 ';
@@ -267,6 +281,12 @@ function getStepClass(step) {
     return (
       base +
       'bg-blue-50/70 dark:bg-slate-800/60 border border-blue-500/40 opacity-100 shadow-sm shadow-blue-500/5'
+    );
+  }
+  if (step.status === 'action' || step.showSelectBtn) {
+    return (
+      base +
+      'bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-500/60 opacity-100 shadow-md shadow-blue-500/10'
     );
   }
   if (step.status === 'success') {
@@ -298,6 +318,9 @@ function getStepIconClass(step) {
   if (step.status === 'running') {
     return base + 'bg-blue-500/20 text-blue-600 dark:text-blue-400';
   }
+  if (step.status === 'action' || step.showSelectBtn) {
+    return base + 'bg-blue-600 text-white shadow-md shadow-blue-600/30';
+  }
   if (step.status === 'success') {
     return base + 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400';
   }
@@ -314,6 +337,9 @@ function getStepBadgeClass(step) {
   const base = 'text-[11px] font-mono shrink-0 ';
   if (step.status === 'running') {
     return base + 'text-blue-600 dark:text-blue-400 font-bold animate-pulse';
+  }
+  if (step.status === 'action') {
+    return base + 'text-blue-600 dark:text-blue-400 font-bold';
   }
   if (step.status === 'success') {
     return base + 'text-emerald-600 dark:text-emerald-400 font-bold';

@@ -87,6 +87,7 @@
       :actionBanner="splashAction"
       :allOk="splashAllOk"
       @action="handleSplashAction"
+      @select-source="handleSelectSourceFolder"
       @close="splashVisible = false"
     />
 
@@ -327,21 +328,14 @@ async function loadAppData(isStartup = false) {
   if (!sourceFolder.value) {
     if (isStartup) {
       splashSteps.value.step1 = {
-        status: 'error',
-        desc: 'Aucun dossier Source valide configuré',
-        badge: 'Manquant',
+        status: 'action',
+        showSelectBtn: true,
+        desc: 'Aucun dossier configuré',
+        badge: 'À sélectionner',
       };
       splashProgress.value = 25;
-      splashSubtitle.value = 'Configuration du dossier Source requise';
-      splashAction.value = {
-        icon: '⚙️',
-        title: 'Dossier Source non sélectionné',
-        text: "Droopy a besoin de connaître l'emplacement de votre dossier Source (Dropbox) pour stocker les évaluations et dossiers élèves.",
-        btnText: 'Configurer le dossier Source dans les Paramètres',
-        type: 'source',
-        bgBorderClass: 'bg-rose-500/10 border-rose-500/40',
-        btnClass: 'bg-rose-600 shadow-rose-600/30',
-      };
+      splashSubtitle.value = 'Sélectionnez votre dossier Source pour démarrer';
+      splashAction.value = null;
     } else {
       openSettings('general');
     }
@@ -370,6 +364,8 @@ async function loadAppData(isStartup = false) {
         desc: 'Scan des dossiers élèves locaux...',
         badge: 'En cours...',
       };
+      // Légère pause fluide (400ms) pour apprécier la validation de l'étape 1
+      await new Promise((r) => setTimeout(r, 400));
     }
 
     // --- ÉTAPE 2 : DOSSIERS LOCAUX DES ÉLÈVES ---
@@ -658,6 +654,45 @@ async function loadAppData(isStartup = false) {
       };
     }
     activeStep.value = 0;
+  }
+}
+
+async function handleSelectSourceFolder() {
+  try {
+    const selected = await nativeFs.selectFolder(sourceFolder.value || '');
+    if (!selected) {
+      // Annulation utilisateur dans la boîte de dialogue système
+      return;
+    }
+
+    sourceFolder.value = selected;
+    storage.setSourceFolder(selected);
+
+    toast.add({
+      severity: 'info',
+      summary: 'Dossier Source sélectionné',
+      detail: selected,
+      life: 2500,
+    });
+
+    // Indication visuelle immédiate dans le bandeau 1
+    splashSteps.value.step1 = {
+      status: 'running',
+      desc: 'Validation du dossier sélectionné...',
+      badge: 'En cours...',
+    };
+    splashSubtitle.value = 'Initialisation du dossier Source...';
+
+    // Poursuit la séquence de démarrage : étape 1 validée puis passage à l'étape 2
+    await loadAppData(true);
+  } catch (err) {
+    console.error('Erreur sélection dossier Source:', err);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur sélection dossier',
+      detail: err.message || "Impossible d'accéder à ce dossier.",
+      life: 4000,
+    });
   }
 }
 
