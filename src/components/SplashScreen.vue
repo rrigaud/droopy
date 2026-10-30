@@ -15,14 +15,14 @@
         <!-- EN-TÊTE : ICÔNE OFFICIELLE DROOPY + TITRE -->
         <div class="text-center relative z-10 mb-6">
           <!-- Icône Officielle Droopy (Style Géométrique Low-Poly) -->
-          <div class="relative inline-block mb-3">
+          <div class="relative inline-block mb-4">
             <div
-              class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-b from-blue-500/20 to-indigo-500/10 border border-blue-500/30 flex items-center justify-center p-2 shadow-xl shadow-blue-950/20 animate-gentle"
+              class="w-40 h-40 sm:w-48 sm:h-48 rounded-3xl bg-gradient-to-b from-blue-500/20 to-indigo-500/10 border border-blue-500/30 flex items-center justify-center p-3 sm:p-4 shadow-2xl shadow-blue-950/30 animate-gentle"
             >
-              <img src="/logo.png" alt="Droopy" class="w-full h-full object-contain rounded-xl drop-shadow-md" />
+              <img src="/logo.png" alt="Droopy" class="w-full h-full object-contain rounded-2xl drop-shadow-lg" />
             </div>
             <span
-              class="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-blue-600 text-[10px] font-extrabold text-white uppercase tracking-wider shadow-md"
+              class="absolute -bottom-1 -right-1 px-2.5 py-1 rounded-full bg-blue-600 text-xs font-extrabold text-white uppercase tracking-wider shadow-lg border border-blue-400/40"
             >
               v5.0.0
             </span>
