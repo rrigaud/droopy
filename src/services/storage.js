@@ -99,7 +99,7 @@ export const storage = {
   },
 
   getTheme() {
-    return localStorage.getItem(PREF_THEME) || 'light';
+    return localStorage.getItem(PREF_THEME) || 'dark';
   },
 
   setTheme(theme) {

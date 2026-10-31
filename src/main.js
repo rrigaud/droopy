@@ -11,7 +11,17 @@ import './style.css';
 import App from './App.vue';
 import { storage, applyThemeToDOM } from './services/storage';
 
-// Initialise le thème sombre/clair sauvegardé
+// Si lancé via le mode profil vierge (?virgin=1), on vide immédiatement le localStorage
+// pour garantir un premier démarrage totalement neuf à chaque lancement du script de test
+if (typeof window !== 'undefined') {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('virgin') === '1' && !sessionStorage.getItem('__droopy_virgin_session__')) {
+    sessionStorage.setItem('__droopy_virgin_session__', '1');
+    localStorage.clear();
+  }
+}
+
+// Initialise le thème sombre (par défaut) ou sauvegardé
 applyThemeToDOM(storage.getTheme());
 
 const app = createApp(App);
