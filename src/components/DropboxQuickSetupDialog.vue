@@ -51,7 +51,7 @@
           </button>
         </div>
 
-        <ol class="space-y-2 text-[11px] text-gray-600 dark:text-slate-300">
+        <ol class="space-y-2.5 text-[11px] text-gray-600 dark:text-slate-300">
           <li class="flex items-start gap-2">
             <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
             <span>
@@ -67,6 +67,27 @@
           <li class="flex items-start gap-2">
             <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
             <div class="flex-1 min-w-0">
+              <span class="font-semibold text-gray-800 dark:text-gray-100">Onglet « Permissions » :</span>
+              <span> cochez impérativement ces 4 droits, puis cliquez sur le bouton bleu <strong>Submit</strong> en bas de page :</span>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                <span class="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-semibold">
+                  sharing.write
+                </span>
+                <span class="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-semibold">
+                  sharing.read
+                </span>
+                <span class="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-semibold">
+                  files.metadata.read
+                </span>
+                <span class="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-semibold">
+                  account_info.read
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">4</span>
+            <div class="flex-1 min-w-0">
               <span>Dans l'onglet <strong>Settings</strong>, vérifiez que l'URI de redirection est bien enregistrée :</span>
               <div class="flex items-center gap-1.5 mt-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-700 dark:text-slate-300">
                 <span class="truncate flex-1 select-all font-semibold text-blue-600 dark:text-blue-400">{{ redirectUri }}</span>
@@ -81,9 +102,9 @@
             </div>
           </li>
           <li class="flex items-start gap-2">
-            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">4</span>
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">5</span>
             <span>
-              Dans ce même onglet <strong>Settings</strong>, copiez la valeur de l'<strong>App key</strong> et collez-la dans le champ ci-dessous.
+              Toujours dans l'onglet <strong>Settings</strong>, copiez la valeur de votre <strong>App key</strong> et collez-la dans le champ ci-dessous.
             </span>
           </li>
         </ol>
