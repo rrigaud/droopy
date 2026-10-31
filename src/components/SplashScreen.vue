@@ -6,7 +6,7 @@
     >
       <!-- Cadre central du Splash Screen -->
       <div
-        class="w-full max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all duration-300"
+        class="w-full max-w-[560px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all duration-300"
       >
         <!-- Lueur subtile en arrière-plan -->
         <div class="absolute -top-20 -left-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-glow"></div>
@@ -130,13 +130,19 @@
 
           <!-- Étape 3 : Compte Dropbox & Partages -->
           <div :class="getStepClass(steps.step3)">
-            <div class="flex items-center gap-3">
+            <div class="flex items-start gap-3 w-full">
               <div :class="getStepIconClass(steps.step3)">
                 <template v-if="steps.step3.status === 'running'">
                   <i class="pi pi-spin pi-spinner text-xs" />
                 </template>
                 <template v-else-if="steps.step3.status === 'success'">
                   <i class="pi pi-check text-xs font-bold" />
+                </template>
+                <template v-else-if="steps.step3.status === 'deferred'">
+                  <i class="pi pi-clock text-xs font-bold" />
+                </template>
+                <template v-else-if="steps.step3.status === 'action'">
+                  <i class="pi pi-box text-xs font-bold" />
                 </template>
                 <template v-else-if="steps.step3.status === 'warning' || steps.step3.status === 'error'">
                   <i class="pi pi-exclamation-triangle text-xs font-bold" />
@@ -145,29 +151,60 @@
                   3
                 </template>
               </div>
-              <div>
-                <h4 class="text-xs font-bold text-gray-800 dark:text-white">
-                  Compte Dropbox & Partages
-                </h4>
-                <p class="text-[11px] text-gray-500 dark:text-slate-400">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="text-xs font-bold text-gray-800 dark:text-white">
+                    Compte Dropbox & Partages
+                  </h4>
+                  <span :class="getStepBadgeClass(steps.step3)">
+                    {{ steps.step3.badge }}
+                  </span>
+                </div>
+                <p class="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 leading-snug">
                   {{ steps.step3.desc }}
                 </p>
+
+                <!-- Boutons d'action Étape 3 (si non configuré / action requise) -->
+                <div
+                  v-if="steps.step3.status === 'action'"
+                  class="flex items-center justify-end gap-2 mt-2.5 pt-2 border-t border-blue-200/50 dark:border-blue-900/40"
+                >
+                  <button
+                    type="button"
+                    @click="$emit('skip-dropbox')"
+                    class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <i class="pi pi-clock text-[10px]" />
+                    <span>Ne pas configurer</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="$emit('configure-dropbox')"
+                    class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <i class="pi pi-box text-xs" />
+                    <span>Configurer le compte Dropbox</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <span :class="getStepBadgeClass(steps.step3)">
-              {{ steps.step3.badge }}
-            </span>
           </div>
 
           <!-- Étape 4 : Portail de connexion web -->
           <div :class="getStepClass(steps.step4)">
-            <div class="flex items-center gap-3">
+            <div class="flex items-start gap-3 w-full">
               <div :class="getStepIconClass(steps.step4)">
                 <template v-if="steps.step4.status === 'running'">
                   <i class="pi pi-spin pi-spinner text-xs" />
                 </template>
                 <template v-else-if="steps.step4.status === 'success'">
                   <i class="pi pi-check text-xs font-bold" />
+                </template>
+                <template v-else-if="steps.step4.status === 'deferred'">
+                  <i class="pi pi-clock text-xs font-bold" />
+                </template>
+                <template v-else-if="steps.step4.status === 'action'">
+                  <i class="pi pi-globe text-xs font-bold" />
                 </template>
                 <template v-else-if="steps.step4.status === 'warning' || steps.step4.status === 'error'">
                   <i class="pi pi-exclamation-triangle text-xs font-bold" />
@@ -176,18 +213,43 @@
                   4
                 </template>
               </div>
-              <div>
-                <h4 class="text-xs font-bold text-gray-800 dark:text-white">
-                  Portail de connexion web
-                </h4>
-                <p class="text-[11px] text-gray-500 dark:text-slate-400">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="text-xs font-bold text-gray-800 dark:text-white">
+                    Portail de connexion web
+                  </h4>
+                  <span :class="getStepBadgeClass(steps.step4)">
+                    {{ steps.step4.badge }}
+                  </span>
+                </div>
+                <p class="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 leading-snug">
                   {{ steps.step4.desc }}
                 </p>
+
+                <!-- Boutons d'action Étape 4 (si adresse non renseignée / action requise) -->
+                <div
+                  v-if="steps.step4.status === 'action'"
+                  class="flex items-center justify-end gap-2 mt-2.5 pt-2 border-t border-purple-200/50 dark:border-purple-900/40"
+                >
+                  <button
+                    type="button"
+                    @click="$emit('skip-portal')"
+                    class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <i class="pi pi-clock text-[10px]" />
+                    <span>Ne pas configurer</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="$emit('configure-portal')"
+                    class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <i class="pi pi-globe text-xs" />
+                    <span>Configurer le portail de connexion</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <span :class="getStepBadgeClass(steps.step4)">
-              {{ steps.step4.badge }}
-            </span>
           </div>
         </div>
 
@@ -273,7 +335,15 @@ const props = defineProps({
   },
 });
 
-defineEmits(['action', 'close', 'select-source']);
+defineEmits([
+  'action',
+  'close',
+  'select-source',
+  'configure-dropbox',
+  'skip-dropbox',
+  'configure-portal',
+  'skip-portal',
+]);
 
 function getStepClass(step) {
   const base = 'step-card p-3 rounded-2xl flex items-center justify-between transition-all duration-300 ';
@@ -287,6 +357,12 @@ function getStepClass(step) {
     return (
       base +
       'bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-500/60 opacity-100 shadow-md shadow-blue-500/10'
+    );
+  }
+  if (step.status === 'deferred') {
+    return (
+      base +
+      'bg-blue-50/50 dark:bg-slate-800/40 border border-blue-300/60 dark:border-blue-500/30 opacity-90'
     );
   }
   if (step.status === 'success') {
@@ -321,6 +397,9 @@ function getStepIconClass(step) {
   if (step.status === 'action' || step.showSelectBtn) {
     return base + 'bg-blue-600 text-white shadow-md shadow-blue-600/30';
   }
+  if (step.status === 'deferred') {
+    return base + 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold';
+  }
   if (step.status === 'success') {
     return base + 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400';
   }
@@ -340,6 +419,9 @@ function getStepBadgeClass(step) {
   }
   if (step.status === 'action') {
     return base + 'text-blue-600 dark:text-blue-400 font-bold';
+  }
+  if (step.status === 'deferred') {
+    return base + 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded-full text-[10px]';
   }
   if (step.status === 'success') {
     return base + 'text-emerald-600 dark:text-emerald-400 font-bold';

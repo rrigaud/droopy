@@ -3,7 +3,7 @@ import { storage } from './storage.js';
 import { DEFAULT_PORTAL_ICON_B64 } from '../assets/portal-icons/defaultIconBase64.js';
 
 export const DEFAULT_SETTINGS = {
-  portalUrl: 'https://portail-eleve.fr/',
+  portalUrl: '',
   portalTitle: 'Portail Élèves',
   portalSubtitle: 'Évaluations & Documents de la classe',
   portalTheme: 'emeraude',
