@@ -248,9 +248,14 @@ export const nativeFs = {
 
   async checkOnlinePortalVersion(portalUrl) {
     if (!portalUrl) return null;
+    let clean = portalUrl.trim().replace(/\/+$/, '');
+    if (!clean) return null;
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = `https://${clean}`;
+    }
     if (isTauri()) {
       try {
-        return await invoke('check_online_portal_version', { portalUrl });
+        return await invoke('check_online_portal_version', { portalUrl: clean });
       } catch (e) {
         console.warn('check_online_portal_version error:', e);
         return null;
@@ -258,7 +263,6 @@ export const nativeFs = {
     }
     // Web fallback
     try {
-      const clean = portalUrl.trim().replace(/\/+$/, '');
       const res = await fetch(`${clean}/version.json?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();

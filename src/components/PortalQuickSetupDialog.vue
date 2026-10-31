@@ -235,8 +235,9 @@ watch(
       try {
         const s = await settingsService.loadSettings(props.sourceFolder);
         const storedUrl = storage.getPortalUrl() || s.portalUrl || '';
-        // Si c'est le placeholder par défaut, on laisse le champ vide avec le placeholder pour faciliter la saisie
-        portalUrl.value = storedUrl.trim().replace(/\/+$/, '') === 'https://portail-eleve.fr' ? '' : storedUrl;
+        const clean = storedUrl.trim().replace(/\/+$/, '').toLowerCase();
+        const isPlaceholder = clean === 'https://portail-eleve.fr' || clean === 'http://portail-eleve.fr' || clean === 'portail-eleve.fr';
+        portalUrl.value = isPlaceholder ? '' : storedUrl;
         portalTitle.value = s.portalTitle || 'Portail Élèves';
         portalSubtitle.value = s.portalSubtitle || 'Évaluations & Documents';
         portalTheme.value = s.portalTheme || 'emeraude';

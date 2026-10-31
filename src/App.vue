@@ -219,9 +219,20 @@ const portalQuickSetupVisible = ref(false);
 
 function isPortalConfigured(url) {
   if (!url || typeof url !== 'string') return false;
-  const clean = url.trim().replace(/\/+$/, '');
-  if (!clean || clean === 'https://portail-eleve.fr') return false;
-  return clean.startsWith('http://') || clean.startsWith('https://');
+  const clean = url.trim().replace(/\/+$/, '').toLowerCase();
+  if (!clean) return false;
+
+  // Placeholder par défaut / d'exemple non considéré comme configuré
+  if (
+    clean === 'https://portail-eleve.fr' ||
+    clean === 'http://portail-eleve.fr' ||
+    clean === 'portail-eleve.fr'
+  ) {
+    return false;
+  }
+
+  // Tout domaine ou URL ayant au moins 3 caractères et un point ou http (ex: rigaudr.fr, https://mon-site.com)
+  return clean.length >= 3 && (clean.includes('.') || clean.startsWith('http'));
 }
 
 function openSettings(tab = 'general') {
