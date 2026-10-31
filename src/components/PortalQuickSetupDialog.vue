@@ -167,21 +167,23 @@
     </div>
 
     <template #footer>
-      <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-800">
-        <Button
-          label="Plus tard"
-          severity="secondary"
-          size="small"
-          class="p-button-outlined !text-xs !py-1.5"
+      <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-800">
+        <button
+          type="button"
           @click="handleClose"
-        />
-        <Button
-          label="Enregistrer les réglages"
-          icon="pi pi-check"
-          size="small"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="pi pi-clock text-[10px]" />
+          <span>Plus tard</span>
+        </button>
+        <button
+          type="button"
           @click="handleSave"
-          class="!bg-purple-600 !hover:bg-purple-500 !text-white !text-xs !font-bold !py-1.5 shadow-md shadow-purple-600/25"
-        />
+          class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+        >
+          <i class="pi pi-check text-xs" />
+          <span>Enregistrer les réglages</span>
+        </button>
       </div>
     </template>
   </Dialog>

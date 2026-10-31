@@ -3,7 +3,7 @@
     :visible="visible"
     modal
     :closable="!isConnecting"
-    :style="{ width: '520px', maxWidth: '92vw' }"
+    :style="{ width: '550px', maxWidth: '94vw' }"
     @update:visible="(val) => $emit('update:visible', val)"
   >
     <template #header>
@@ -22,30 +22,77 @@
       </div>
     </template>
 
-    <div class="py-2 space-y-4">
-      <!-- Explication Droopy & Scoped App -->
+    <div class="py-2 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+      <!-- Bandeau informatif en haut (conservé) -->
       <div class="p-3 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-200 leading-relaxed flex items-start gap-2.5">
         <i class="pi pi-info-circle text-blue-600 dark:text-blue-400 text-sm mt-0.5 shrink-0" />
         <div>
           <p class="font-semibold mb-0.5">Pourquoi une App Key ?</p>
-          <p class="text-[11px] text-blue-800/90 dark:text-blue-300">
+          <p class="text-[11px] text-blue-800/90 dark:text-blue-300 leading-snug">
             Droopy utilise votre propre application Dropbox pour créer automatiquement les liens de partage (en lecture seule) vers les dossiers élèves, sans aucune limite ni serveur tiers intermédiaire.
           </p>
         </div>
       </div>
 
-      <!-- Champ de saisie App Key -->
-      <div>
-        <label class="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5 flex items-center justify-between">
-          <span>App Key Dropbox</span>
+      <!-- Séquence synthétique d'instructions pour récupérer l'App Key -->
+      <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+            <i class="pi pi-compass text-blue-500" />
+            <span>Comment récupérer votre App Key ?</span>
+          </h4>
           <button
             type="button"
             @click="openDropboxConsole"
-            class="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+            class="px-2.5 py-1 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
           >
             <i class="pi pi-external-link text-[10px]" />
-            <span>Où trouver mon App Key ?</span>
+            <span>Ouvrir la console Dropbox</span>
           </button>
+        </div>
+
+        <ol class="space-y-2 text-[11px] text-gray-600 dark:text-slate-300">
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
+            <span>
+              Connectez-vous à la <strong>console Dropbox Developers</strong> en cliquant sur le bouton ci-dessus.
+            </span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
+            <span>
+              Si vous avez déjà une application, <strong>cliquez dessus</strong>. Sinon, cliquez sur <strong>Create app</strong> (choisir <em>Scoped access</em> puis <em>Full Dropbox</em>).
+            </span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
+            <div class="flex-1 min-w-0">
+              <span>Dans l'onglet <strong>Settings</strong>, vérifiez que l'URI de redirection est bien enregistrée :</span>
+              <div class="flex items-center gap-1.5 mt-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-700 dark:text-slate-300">
+                <span class="truncate flex-1 select-all font-semibold text-blue-600 dark:text-blue-400">{{ redirectUri }}</span>
+                <button
+                  type="button"
+                  @click="copyRedirectUri"
+                  class="text-[10px] text-blue-600 dark:text-blue-400 font-sans font-bold hover:underline shrink-0 cursor-pointer"
+                >
+                  {{ copiedUri ? '✓ Copié !' : 'Copier' }}
+                </button>
+              </div>
+            </div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">4</span>
+            <span>
+              Dans ce même onglet <strong>Settings</strong>, copiez la valeur de l'<strong>App key</strong> et collez-la dans le champ ci-dessous.
+            </span>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Champ de saisie App Key -->
+      <div>
+        <label class="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+          App Key Dropbox
         </label>
         <InputText
           v-model="appKey"
@@ -78,24 +125,30 @@
       </div>
     </div>
 
+    <!-- BOUTONS DU BAS : Style identique au Splash Screen -->
     <template #footer>
-      <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-800">
-        <Button
-          label="Plus tard"
-          severity="secondary"
-          size="small"
-          class="p-button-outlined !text-xs !py-1.5"
+      <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-800">
+        <!-- Bouton "Plus tard" (style "Ne pas configurer" du splashscreen avec icône horloge) -->
+        <button
+          type="button"
           :disabled="isConnecting"
           @click="handleClose"
-        />
-        <Button
-          :label="isConnecting ? 'Connexion...' : 'Connecter mon compte'"
-          :icon="isConnecting ? 'pi pi-spin pi-spinner' : 'pi pi-link'"
-          size="small"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <i class="pi pi-clock text-[10px]" />
+          <span>Plus tard</span>
+        </button>
+
+        <!-- Bouton "Connecter" (style "Configurer" du splashscreen avec maillon de chaîne) -->
+        <button
+          type="button"
           :disabled="!appKey.trim() || isConnecting"
           @click="handleConnect"
-          class="!bg-blue-600 !hover:bg-blue-500 !text-white !text-xs !font-bold !py-1.5 shadow-md shadow-blue-600/25"
-        />
+          class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+        >
+          <i :class="isConnecting ? 'pi pi-spin pi-spinner text-xs' : 'pi pi-link text-xs'" />
+          <span>{{ isConnecting ? 'Connexion en cours...' : 'Connecter mon compte' }}</span>
+        </button>
       </div>
     </template>
   </Dialog>
@@ -104,7 +157,6 @@
 <script setup>
 import { ref, watch } from 'vue';
 import Dialog from 'primevue/dialog';
-import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
 import { storage } from '../services/storage.js';
@@ -124,6 +176,8 @@ const toast = useToast();
 const appKey = ref('');
 const isConnecting = ref(false);
 const errorMessage = ref('');
+const copiedUri = ref(false);
+const redirectUri = 'http://localhost:52478/oauth/callback';
 
 // Pré-remplit l'App Key si elle est déjà enregistrée en local
 watch(
@@ -143,6 +197,27 @@ async function openDropboxConsole() {
     await nativeFs.openPath(url);
   } catch (_) {
     window.open(url, '_blank');
+  }
+}
+
+async function copyRedirectUri() {
+  try {
+    await navigator.clipboard.writeText(redirectUri);
+    copiedUri.value = true;
+    setTimeout(() => {
+      copiedUri.value = false;
+    }, 2500);
+  } catch (_) {
+    const textArea = document.createElement('textarea');
+    textArea.value = redirectUri;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    copiedUri.value = true;
+    setTimeout(() => {
+      copiedUri.value = false;
+    }, 2500);
   }
 }
 
