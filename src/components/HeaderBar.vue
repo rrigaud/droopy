@@ -1,33 +1,33 @@
 <template>
   <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-30">
-    <div class="w-full px-5 py-2.5 flex items-center justify-between gap-6">
+    <div class="w-full px-5 py-2 flex items-center justify-between gap-6 min-h-[56px]">
       <!-- Left: App Brand, Settings & Source Folder -->
       <div class="flex items-center gap-3 shrink-0">
-        <div class="flex items-center gap-2">
-          <img src="/logo.png" alt="Droopy" class="w-8 h-8 rounded-lg shadow-sm" />
-          <span class="font-bold text-lg tracking-wide text-blue-600 dark:text-blue-400">
-            DROOPY <span class="text-xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono">v5.0.0</span>
+        <div class="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Droopy" class="w-10 h-10 rounded-xl shadow-sm object-contain shrink-0" />
+          <span class="font-bold text-lg tracking-wide text-blue-600 dark:text-blue-400 select-none flex items-center gap-1.5">
+            DROOPY <span class="text-xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono font-semibold">v5.0.0</span>
           </span>
         </div>
 
-        <Button
-          icon="pi pi-cog"
-          text
-          rounded
-          severity="secondary"
-          @click="$emit('open-settings')"
-          v-tooltip.bottom="'Paramètres (Dossier Source & Thème)'"
-          class="!w-9 !h-9 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-        />
-
-        <!-- Dossier Source sélectionné (ancré à gauche à côté des réglages) -->
-        <div
-          class="flex items-center text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/60 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 max-w-[280px] truncate"
-          :title="sourceFolder || 'Aucun dossier source'"
-        >
-          <i class="pi pi-folder mr-1.5 text-blue-500 shrink-0 text-xs" />
-          <span class="truncate font-medium">{{ sourceFolderName }}</span>
-        </div>
+        <!-- ButtonGroup Paramètres + Dossier Source -->
+        <ButtonGroup class="shadow-xs shrink-0">
+          <Button
+            icon="pi pi-cog"
+            severity="secondary"
+            outlined
+            @click="$emit('open-settings')"
+            v-tooltip.bottom="'Paramètres (Dossier Source & Thème)'"
+            class="!border-gray-300 dark:!border-gray-600 !text-gray-600 dark:!text-gray-300 hover:!text-blue-600 dark:hover:!text-blue-400 hover:!bg-gray-100 dark:hover:!bg-gray-700 !rounded-l-lg !rounded-r-none !h-9 !w-9 !p-0 flex items-center justify-center shrink-0 cursor-pointer"
+          />
+          <span
+            class="inline-flex items-center text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50/90 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 border-l-0 rounded-r-lg px-3 h-9 select-none max-w-[280px] truncate"
+            :title="sourceFolder || 'Aucun dossier source configuré'"
+          >
+            <i class="pi pi-folder mr-1.5 text-blue-500 dark:text-blue-400 shrink-0 text-xs" />
+            <span class="truncate">{{ sourceFolderName }}</span>
+          </span>
+        </ButtonGroup>
       </div>
 
       <!-- Right: Horizontal Stepper General Menu (aligned to the right) -->
@@ -91,6 +91,7 @@
 <script setup>
 import { computed } from 'vue';
 import Button from 'primevue/button';
+import ButtonGroup from 'primevue/buttongroup';
 
 const props = defineProps({
   activeStep: {

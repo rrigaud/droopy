@@ -753,9 +753,16 @@ function handleSkipPortal() {
 }
 
 async function handleSourceFolderChanged(newFolder) {
+  settingsVisible.value = false;
   sourceFolder.value = newFolder;
   hasPromptedUrlCleanup.value = false;
-  await loadAppData();
+  currentEvaluationInfo.value = {};
+  currentCopies.value = [];
+  identifiedCopies.value = [];
+  step1Completed.value = false;
+  step2Completed.value = false;
+  step3Completed.value = false;
+  await loadAppData(true);
   toast.add({
     severity: 'success',
     summary: 'Dossier Source configuré',
