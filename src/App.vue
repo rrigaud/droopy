@@ -90,6 +90,9 @@
       @select-source="handleSelectSourceFolder"
       @configure-dropbox="handleOpenDropboxSetup"
       @skip-dropbox="handleSkipDropbox"
+      @skip-dropbox-sync="handleSkipDropboxSync"
+      @sync-dropbox="handleSplashSyncDropbox"
+      @open-settings="openSettings('general')"
       @configure-portal="handleOpenPortalSetup"
       @skip-portal="handleSkipPortal"
       @close="splashVisible = false"
@@ -460,6 +463,7 @@ async function loadAppData(isStartup = false) {
     if (isStartup && !hasDropboxAuth) {
       splashSteps.value.step3 = {
         status: 'action',
+        actionType: 'setup',
         desc: 'Compte Dropbox déconnecté ou non configuré',
         badge: 'Non connecté',
       };
@@ -471,17 +475,62 @@ async function loadAppData(isStartup = false) {
 
     let checkedStudents = mapped;
     if (hasDropboxAuth) {
+      const sourceInfo = await dropboxService.getSourceFolderDropboxInfo(sourceFolder.value);
       checkedStudents = await dropboxService.checkStudentsDropboxStatus(sourceFolder.value, mapped);
       students.value = checkedStudents;
 
       if (isStartup) {
-        splashSteps.value.step3 = {
-          status: 'success',
-          desc: `Compte connecté • ${checkedStudents.length} partages actifs`,
-          badge: 'OK',
-        };
-        splashProgress.value = 85;
-        await new Promise((r) => setTimeout(r, 350));
+        // Cas 3A : Le dossier Source est hors de Dropbox
+        if (!sourceInfo.inDropbox) {
+          splashSteps.value.step3 = {
+            status: 'action',
+            actionType: 'outside',
+            desc: 'Dossier Source situé hors du dossier Dropbox local (mode local)',
+            badge: 'Hors Dropbox',
+          };
+          splashProgress.value = 75;
+          splashSubtitle.value = 'Le dossier Source n\'est pas synchronisable avec Dropbox';
+          splashAction.value = null;
+          return;
+        }
+
+        const total = checkedStudents.length;
+        const sharedCount = checkedStudents.filter((st) => st.isShared).length;
+
+        // Cas 3B : Aucun élève importé pour le moment
+        if (total === 0) {
+          splashSteps.value.step3 = {
+            status: 'success',
+            desc: 'Compte connecté • Aucun élève à synchroniser',
+            badge: 'Prêt',
+          };
+          splashProgress.value = 85;
+          await new Promise((r) => setTimeout(r, 350));
+        }
+        // Cas 3C : Partages manquants ou non synchronisés (ex: 0/12 ou partiel)
+        else if (sharedCount < total) {
+          const missing = total - sharedCount;
+          splashSteps.value.step3 = {
+            status: 'action',
+            actionType: 'sync',
+            desc: `Compte connecté • ${sharedCount}/${total} partage${sharedCount > 1 ? 's' : ''} actif${sharedCount > 1 ? 's' : ''} (${missing} non synchronisé${missing > 1 ? 's' : ''})`,
+            badge: `${missing} à synchroniser`,
+          };
+          splashProgress.value = 75;
+          splashSubtitle.value = 'Les partages en ligne de ces élèves ne sont pas encore créés';
+          splashAction.value = null;
+          return;
+        }
+        // Cas 3D : 100% des élèves ont des partages actifs et conformes
+        else {
+          splashSteps.value.step3 = {
+            status: 'success',
+            desc: `Compte connecté • ${sharedCount}/${total} partages actifs`,
+            badge: 'OK',
+          };
+          splashProgress.value = 85;
+          await new Promise((r) => setTimeout(r, 350));
+        }
       }
     }
 
@@ -613,9 +662,25 @@ async function handleDropboxConnected(result) {
   try {
     const checked = await dropboxService.checkStudentsDropboxStatus(sourceFolder.value, students.value);
     students.value = checked;
+    const total = checked.length;
+    const sharedCount = checked.filter((s) => s.isShared).length;
+
+    if (total > 0 && sharedCount < total) {
+      const missing = total - sharedCount;
+      splashSteps.value.step3 = {
+        status: 'action',
+        actionType: 'sync',
+        desc: `Compte connecté (${result.name || result.email || 'OK'}) • ${sharedCount}/${total} partages actifs (${missing} non synchronisé${missing > 1 ? 's' : ''})`,
+        badge: `${missing} à synchroniser`,
+      };
+      splashProgress.value = 75;
+      splashSubtitle.value = 'Les partages en ligne de ces élèves ne sont pas encore créés';
+      return;
+    }
+
     splashSteps.value.step3 = {
       status: 'success',
-      desc: `Compte connecté (${result.name || result.email || 'OK'}) • ${checked.length} partages synchronisés`,
+      desc: `Compte connecté (${result.name || result.email || 'OK'}) • ${sharedCount}/${total} partages actifs`,
       badge: 'OK',
     };
   } catch (e) {
@@ -642,7 +707,7 @@ function handleSkipDropbox() {
   splashSteps.value.step4 = {
     status: 'deferred',
     desc: 'Non requis pour un usage local (Dropbox non configuré)',
-    badge: 'Reporté',
+    badge: 'Non requis',
   };
   splashProgress.value = 100;
   splashSubtitle.value = 'Prêt pour une utilisation locale !';
@@ -657,6 +722,74 @@ function handleSkipDropbox() {
   setTimeout(() => {
     splashVisible.value = false;
   }, 1000);
+}
+
+function handleSkipDropboxSync() {
+  splashSteps.value.step3 = {
+    status: 'deferred',
+    desc: 'Synchronisation ignorée • Mode local sécurisé',
+    badge: 'Mode local',
+  };
+  splashProgress.value = 85;
+
+  // Étape 4 : Pas de partages en ligne -> portail web non requis
+  splashSteps.value.step4 = {
+    status: 'deferred',
+    desc: 'Portail web non requis en mode local (sans partages en ligne)',
+    badge: 'Non requis',
+  };
+  splashProgress.value = 100;
+  splashSubtitle.value = 'Prêt pour une utilisation locale !';
+  splashAllOk.value = true;
+
+  if (isStep0AllOk.value) {
+    activeStep.value = 1;
+  } else {
+    activeStep.value = 0;
+  }
+
+  setTimeout(() => {
+    splashVisible.value = false;
+  }, 1000);
+}
+
+async function handleSplashSyncDropbox() {
+  splashSteps.value.step3 = {
+    status: 'running',
+    desc: 'Création des dossiers et partages sur Dropbox...',
+    badge: 'En cours...',
+  };
+  splashSubtitle.value = 'Synchronisation avec Dropbox en cours...';
+
+  try {
+    await handleSyncFoldersShares();
+    const total = students.value.length;
+    const sharedCount = students.value.filter((s) => s.isShared).length;
+
+    splashSteps.value.step3 = {
+      status: 'success',
+      desc: `Compte connecté • ${sharedCount}/${total} partages actifs`,
+      badge: 'OK',
+    };
+    splashProgress.value = 85;
+    await new Promise((r) => setTimeout(r, 400));
+
+    // Passage à l'étape 4 maintenant que les partages existent
+    await runStep4Verification();
+  } catch (err) {
+    console.error('Erreur synchronisation splashscreen:', err);
+    splashSteps.value.step3 = {
+      status: 'warning',
+      desc: `Synchronisation partielle : ${err.message || err}`,
+      badge: 'Erreur',
+    };
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur Synchronisation',
+      detail: err.message || 'Impossible de synchroniser avec Dropbox.',
+      life: 4000,
+    });
+  }
 }
 
 async function runStep4Verification(settingsObj = null) {

@@ -142,7 +142,7 @@
                   <i class="pi pi-clock text-xs font-bold" />
                 </template>
                 <template v-else-if="steps.step3.status === 'action'">
-                  <i class="pi pi-box text-xs font-bold" />
+                  <i :class="[steps.step3.actionType === 'sync' ? 'pi pi-sync' : 'pi pi-box', 'text-xs font-bold']" />
                 </template>
                 <template v-else-if="steps.step3.status === 'warning' || steps.step3.status === 'error'">
                   <i class="pi pi-exclamation-triangle text-xs font-bold" />
@@ -164,27 +164,70 @@
                   {{ steps.step3.desc }}
                 </p>
 
-                <!-- Boutons d'action Étape 3 (si non configuré / action requise) -->
+                <!-- Boutons d'action Étape 3 (si non configuré / partages non synchronisés) -->
                 <div
                   v-if="steps.step3.status === 'action'"
                   class="flex items-center justify-end gap-2 mt-2.5 pt-2 border-t border-blue-200/50 dark:border-blue-900/40"
                 >
-                  <button
-                    type="button"
-                    @click="$emit('skip-dropbox')"
-                    class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <i class="pi pi-clock text-[10px]" />
-                    <span>Ne pas configurer</span>
-                  </button>
-                  <button
-                    type="button"
-                    @click="$emit('configure-dropbox')"
-                    class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <i class="pi pi-box text-xs" />
-                    <span>Configurer le compte Dropbox</span>
-                  </button>
+                  <!-- Cas 1 : Compte non configuré -->
+                  <template v-if="!steps.step3.actionType || steps.step3.actionType === 'setup'">
+                    <button
+                      type="button"
+                      @click="$emit('skip-dropbox')"
+                      class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <i class="pi pi-clock text-[10px]" />
+                      <span>Ne pas configurer</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="$emit('configure-dropbox')"
+                      class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <i class="pi pi-box text-xs" />
+                      <span>Configurer le compte Dropbox</span>
+                    </button>
+                  </template>
+
+                  <!-- Cas 2 : Connecté mais partages non synchronisés en ligne -->
+                  <template v-else-if="steps.step3.actionType === 'sync'">
+                    <button
+                      type="button"
+                      @click="$emit('skip-dropbox-sync')"
+                      class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <i class="pi pi-clock text-[10px]" />
+                      <span>Ne pas synchroniser</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="$emit('sync-dropbox')"
+                      class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <i class="pi pi-sync text-xs" />
+                      <span>Synchroniser les partages</span>
+                    </button>
+                  </template>
+
+                  <!-- Cas 3 : Dossier Source hors de Dropbox -->
+                  <template v-else-if="steps.step3.actionType === 'outside'">
+                    <button
+                      type="button"
+                      @click="$emit('skip-dropbox')"
+                      class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <i class="pi pi-check text-[10px]" />
+                      <span>Continuer en local</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="$emit('open-settings')"
+                      class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <i class="pi pi-cog text-xs" />
+                      <span>Changer de dossier</span>
+                    </button>
+                  </template>
                 </div>
               </div>
             </div>
@@ -341,6 +384,9 @@ defineEmits([
   'select-source',
   'configure-dropbox',
   'skip-dropbox',
+  'skip-dropbox-sync',
+  'sync-dropbox',
+  'open-settings',
   'configure-portal',
   'skip-portal',
 ]);
