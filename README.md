@@ -6,7 +6,7 @@
   ### Le workflow nomade de correction d'évaluations pour enseignants
 
   [![Version](https://img.shields.io/badge/version-5.0.0-emerald.svg?style=flat-square)](https://github.com/rrigaud/droopy/releases)
-  [![Platform](https://img.shields.io/badge/plateforme-macOS%2012%2B-blue.svg?style=flat-square&logo=apple)](https://github.com/rrigaud/droopy/releases)
+  [![Platform](https://img.shields.io/badge/plateformes-macOS%20%E2%80%A2%20Windows%20%E2%80%A2%20Linux-blue.svg?style=flat-square)](https://github.com/rrigaud/droopy/releases)
   [![Tauri](https://img.shields.io/badge/moteur-Tauri%202%20(Rust)-orange.svg?style=flat-square&logo=tauri)](https://tauri.app)
   [![License](https://img.shields.io/badge/licence-MIT-purple.svg?style=flat-square)](LICENSE)
   [![Site Vitrine](https://img.shields.io/badge/site_vitrine-En_Ligne-teal.svg?style=flat-square&logo=safari)](https://rrigaud.github.io/droopy)
@@ -20,7 +20,7 @@
     <a href="https://rrigaud.github.io/droopy"><strong>🌐 Découvrir le Site Vitrine</strong></a> •
     <a href="docs/GUIDE_ENSEIGNANT.md"><strong>📖 Manuel Enseignant</strong></a> •
     <a href="docs/ARCHITECTURE_TECHNIQUE.md"><strong>🛠️ Architecture Développeur</strong></a> •
-    <a href="https://github.com/rrigaud/droopy/releases"><strong>🍏 Télécharger pour Mac (.dmg)</strong></a>
+    <a href="https://github.com/rrigaud/droopy/releases"><strong>📥 Télécharger (macOS, Windows, Linux)</strong></a>
   </p>
 
 </div>
@@ -51,7 +51,7 @@ Le problème de la correction n'a jamais été le geste d'écrire sur une copie 
 - **🏷️ Planches d'étiquettes de rentrée** : Génération en un clic des fiches individuelles en PDF (format 2 colonnes) à faire coller sur les cahiers avec identifiant, mot de passe et QR code de consultation.
 - **📊 Relevé automatique des notes** : Copie dans le presse-papier d'un tableau propre (`Élève \t Note`) prêt à coller dans Notion, Pronote ou LibreOffice Calc.
 - **🔐 Chiffrement AES-256 GCM Client-Side** : Les liens de partage en ligne sont chiffrés avec le mot de passe individuel de l'élève. Même l'hébergeur web ne peut pas lire les copies.
-- **🛡️ 100% Hors-Ligne & RGPD Conforme** : Zéro serveur central, zéro compte tiers payant, zéro télémétrie. Tout le traitement est exécuté localement sur votre Mac.
+- **🛡️ 100% Hors-Ligne & RGPD Conforme** : Zéro serveur central, zéro compte tiers payant, zéro télémétrie. Tout le traitement est exécuté localement sur votre ordinateur.
 
 ---
 
@@ -78,7 +78,7 @@ Dossier_Source/
 
 ## 🛠️ Stack Technique
 
-- **Moteur Desktop** : [Tauri v2](https://tauri.app/) (Rust natif, macOS M1/M2/M3/M4 & Intel).
+- **Moteur Desktop** : [Tauri v2](https://tauri.app/) (Rust natif, multiplateforme macOS, Windows, Linux).
 - **Interface Utilisateur** : [Vue 3](https://vuejs.org/) (Composition API), [PrimeVue v4](https://primevue.org/) (Preset Aura), [TailwindCSS](https://tailwindcss.com/).
 - **Moteur PDF** : `pdf-lib` (découpage vectoriel pur) et `pdfjs-dist` (zoom Canvas haute définition).
 - **Stockage Cloud** : Dropbox API v2 (Protocole OAuth 2.0 PKCE, architecture Scoped App).
@@ -91,7 +91,7 @@ Consultez le document complet d'[Architecture Technique](docs/ARCHITECTURE_TECHN
 ## 🚀 Démarrage Rapide (Pour les Développeurs)
 
 ### Prérequis
-- macOS avec Node.js (v18+) et Rust (`cargo`).
+- Système macOS, Windows ou Linux avec Node.js (v18+) et Rust (`cargo`).
 
 ```bash
 # 1. Cloner le projet

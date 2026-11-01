@@ -8,7 +8,7 @@ Merci pour votre intérêt pour **Droopy** ! Ce projet est développé par un en
 
 Vous pouvez contribuer à Droopy de nombreuses manières, que vous soyez développeur, enseignant ou designer :
 
-1. **Signaler un bug** : Ouvrez une [Issue GitHub](https://github.com/rrigaud/droopy/issues) en décrivant le problème rencontré, votre version de macOS et les étapes pour le reproduire.
+1. **Signaler un bug** : Ouvrez une [Issue GitHub](https://github.com/rrigaud/droopy/issues) en décrivant le problème rencontré, votre système d'exploitation (macOS, Windows ou Linux) et les étapes pour le reproduire.
 2. **Proposer une amélioration** : Vous avez une idée pour rendre le flux de travail encore plus rapide ? Partagez-la dans les discussions ou ouvrez une issue avec le label `enhancement`.
 3. **Améliorer la documentation** : Proposez des modifications dans le [Guide Enseignant](docs/GUIDE_ENSEIGNANT.md) ou dans les traductions.
 4. **Contribuer au code** : Soumettez une Pull Request (voir les consignes ci-dessous).

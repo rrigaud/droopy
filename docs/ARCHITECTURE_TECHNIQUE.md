@@ -23,7 +23,7 @@ Droopy est conçu selon trois principes cardinaux :
 
 1. **Zero-Server (Souveraineté des données)** : Droopy n'utilise aucun serveur intermédiaire de télémétrie, de base de données ou de relais. Tout le traitement métier est exécuté en local sur la machine de l'enseignant.
 2. **Zero-Knowledge (Confidentialité élèves)** : Les liens d'accès aux copies corrigées sont chiffrés individuellement avec le mot de passe de l'élève avant toute publication. L'hébergeur statique (Netlify, GitHub Pages, etc.) ne peut mathématiquement pas connaître le contenu des partages.
-3. **Légèreté & Performance Native** : L'utilisation de **Tauri 2 (Rust)** permet de produire un binaire natif macOS compact (< 15 Mo), avec une consommation mémoire minime (~60 Mo de RAM en fonctionnement) et une vitesse d'exécution instantanée.
+3. **Légèreté & Performance Native Multiplateforme** : L'utilisation de **Tauri 2 (Rust)** permet de produire des binaires natifs compacts (< 15 Mo sur macOS, Windows et Linux), avec une consommation mémoire minime (~60 Mo de RAM en fonctionnement) et une vitesse d'exécution instantanée.
 
 ---
 
@@ -31,7 +31,7 @@ Droopy est conçu selon trois principes cardinaux :
 
 | Couche | Technologie | Rôle |
 |---|---|---|
-| **Moteur Desktop** | **Tauri v2 (Rust)** | Système de fichiers natif, dialogues macOS, loopback HTTP pour OAuth, commandes système sécurisées. |
+| **Moteur Desktop** | **Tauri v2 (Rust)** | Système de fichiers natif, dialogues système macOS/Windows/Linux, loopback HTTP pour OAuth, commandes système sécurisées. |
 | **Frontend UI** | **Vue 3 (Composition API)** | Interface réactive, état applicatif centralisé, transitions fluides. |
 | **Composants & Thème** | **PrimeVue v4 (Aura Preset)** + **TailwindCSS** | Composants UI professionnels, support natif du mode sombre / clair, accessibilité. |
 | **Manipulation PDF** | **pdf-lib** | Découpage ultra-rapide des flux PDF sans ré-encodage, assemblage des étiquettes et des récapitulatifs. |
@@ -83,7 +83,7 @@ droopy-v4/
 
 ## 4. Cycle des Données & Arborescence du Dossier Source
 
-Droopy adopte une architecture dite **« Source-Centric »**. Toutes les données d'un enseignant résident dans un dossier unique choisi sur son Mac (idéalement dans son arborescence Dropbox locale) :
+Droopy adopte une architecture dite **« Source-Centric »**. Toutes les données d'un enseignant résident dans un dossier unique choisi sur son ordinateur (idéalement dans son arborescence Dropbox locale) :
 
 ```text
 Dossier_Source/
@@ -141,7 +141,7 @@ Le traitement des PDF d'évaluations se décompose en deux phases distinctes :
 
 ## 6. Intégration Dropbox : OAuth PKCE & Scoped App
 
-Pour éviter de faire transiter des identifiants sensibles par un serveur tiers, Droopy implémente le flux standard **OAuth 2.0 avec PKCE (Proof Key for Code Exchange)** directement sur le Mac :
+Pour éviter de faire transiter des identifiants sensibles par un serveur tiers, Droopy implémente le flux standard **OAuth 2.0 avec PKCE (Proof Key for Code Exchange)** directement sur l'ordinateur de l'enseignant :
 
 ```mermaid
 sequenceDiagram
@@ -197,10 +197,13 @@ Lorsque l'élève saisit son identifiant et son mot de passe sur le portail :
 
 ## 8. Guide de Compilation & Environnement Local
 
-### Prérequis système (macOS)
+### Prérequis système (macOS, Windows, Linux)
 - **Node.js** v18+ ou v20+ avec npm.
 - **Rust & Cargo** : installables via `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`.
-- **Xcode Command Line Tools** : `xcode-select --install`.
+- Dépendances système :
+  - Sur **macOS** : `xcode-select --install`.
+  - Sur **Linux** (Debian/Ubuntu) : `sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev`.
+  - Sur **Windows** : C++ Build Tools (Visual Studio).
 
 ### Commandes usuelles
 
@@ -215,12 +218,11 @@ npm install
 # 3. Lancer en mode développement (Vite + Tauri)
 npm run tauri dev
 
-# 4. Compiler le binaire de production (.dmg pour macOS)
+# 4. Compiler le binaire de production natif (.dmg sur macOS, .exe/.msi sur Windows, .deb sur Linux)
 npm run tauri build
 ```
 
-Le fichier `.dmg` d'installation universel est généré dans :  
-`src-tauri/target/release/bundle/dmg/Droopy_5.0.0_universal.dmg`.
+Les installateurs de production sont générés dans `src-tauri/target/release/bundle/` selon le système hôte (ou compilés automatiquement pour les 3 plateformes via les GitHub Actions).
 
 ---
 

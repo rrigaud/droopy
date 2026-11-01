@@ -123,7 +123,7 @@
           @keyup.enter="handleConnect"
         />
         <p class="text-[10px] text-gray-500 dark:text-slate-400 mt-1">
-          L'App Key reste stockée en local sur votre Mac et n'est jamais transmise à des tiers.
+          L'App Key reste stockée en local sur votre ordinateur et n'est jamais transmise à des tiers.
         </p>
       </div>
 

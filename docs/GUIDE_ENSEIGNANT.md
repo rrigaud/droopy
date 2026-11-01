@@ -7,7 +7,7 @@ Bienvenue dans le guide officiel de **Droopy** ! Ce manuel pas-à-pas est conçu
 ## 📑 Sommaire
 
 1. [La Philosophie de Droopy : La Correction Nomade](#1-la-philosophie-de-droopy--la-correction-nomade)
-2. [Installation & Premier Lancement sur macOS](#2-installation--premier-lancement-sur-macos)
+2. [Installation & Premier Lancement (macOS, Windows, Linux)](#2-installation--premier-lancement-macos-windows-linux)
 3. [Étape 0 : Préparation des Classes & des Élèves](#3-étape-0--préparation-des-classes--des-élèves)
    - [Importer une liste d'élèves (CSV)](#importer-une-liste-délèves-csv)
    - [Générer les mots de passe et les dossiers locaux](#générer-les-mots-de-passe-et-les-dossiers-locaux)
@@ -45,21 +45,24 @@ C'est là qu'intervient **Droopy** :
 
 ---
 
-## 2. Installation & Premier Lancement sur macOS
+## 2. Installation & Premier Lancement (macOS, Windows, Linux)
 
 ### Prérequis
-- Un ordinateur Mac (Apple Silicon M1/M2/M3/M4 ou processeur Intel).
-- macOS 12 (Monterey) ou supérieur (Ventura, Sonoma, Sequoia).
+- **macOS** : Apple Silicon (M1/M2/M3/M4) ou processeur Intel, macOS 12 (Monterey) ou supérieur.
+- **Windows** : Windows 10 ou 11 (64 bits).
+- **Linux** : Ubuntu, Debian, Fedora, Arch Linux ou toute distribution moderne (paquet `.deb` ou `AppImage`).
 - Un compte Dropbox personnel (la version gratuite de 2 Go suffit largement pour plusieurs années de copies PDF).
 
 ### Installation
-1. Téléchargez la dernière version de **Droopy (`.dmg`)** depuis la page des [Releases GitHub](https://github.com/rrigaud/droopy/releases).
-2. Ouvrez le fichier téléchargé et **glissez l'icône Droopy dans votre dossier Applications**.
-3. Lancez Droopy. *(Si macOS affiche un message de sécurité au premier lancement, faites Clic-droit sur l'application > « Ouvrir » > confirmez l'ouverture).*
+1. Téléchargez la dernière version de **Droopy** adaptée à votre système depuis la page des [Releases GitHub](https://github.com/rrigaud/droopy/releases) :
+   - Sur **macOS** : Téléchargez le fichier `.dmg`, ouvrez-le et glissez l'icône dans votre dossier Applications.
+   - Sur **Windows** : Téléchargez le fichier `.exe` ou `.msi` et suivez l'assistant d'installation.
+   - Sur **Linux** : Téléchargez le paquet `.deb` ou `.AppImage`.
+2. Lancez Droopy. *(Sous macOS, si un avertissement de sécurité s'affiche au tout premier lancement, faites Clic-droit sur l'application > « Ouvrir » > confirmez l'ouverture).*
 
 ### Le Dossier « Source »
 Au tout premier lancement, Droopy vous demande de choisir un **Dossier Source** :
-- **Conseil recommandé** : Choisissez un dossier situé à l'intérieur de votre dossier Dropbox local (par exemple : `~/Dropbox/DroopySource`).
+- **Conseil recommandé** : Choisissez un dossier situé à l'intérieur de votre dossier Dropbox local (par exemple : `Dropbox/DroopySource`).
 - Droopy crée automatiquement à l'intérieur l'arborescence requise :
   - `eleves.json` : la base de données locale de vos élèves.
   - `Evaluations/A corriger/` : où vous déposerez vos scans à traiter.
@@ -105,7 +108,7 @@ Voici la routine ultra-rapide à adopter pour chaque devoir :
 flowchart LR
     A["1. Devoir en classe"] --> B["2. Scan au photocopieur<br>(Clé USB - 1 min)"]
     B --> C["3. Correction nomade<br>(Tablette + Stylet)"]
-    C --> D["4. Découpage Droopy<br>(Mac - 3 secondes)"]
+    C --> D["4. Découpage Droopy<br>(Ordinateur - 3 secondes)"]
     D --> E["5. Portail en ligne<br>(Accès élèves & parents)"]
 ```
 
@@ -115,14 +118,14 @@ flowchart LR
 - **Résultat** : En 60 secondes, vos 30 copies (soit 60 à 120 pages) sont numérisées dans un unique fichier PDF.
 
 ### 2. La Correction sur tablette avec stylet
-- Branchez la clé sur votre Mac ou déposez le PDF dans votre Dropbox.
+- Branchez la clé sur votre ordinateur ou déposez le PDF dans votre Dropbox.
 - Ouvrez le PDF sur votre **iPad ou tablette tactile** dans votre application préférée (**GoodNotes**, **Notability**, **Noteful**, **Apple Notes**, **Acrobat**...).
 - **Vous êtes libre !** Corrigez au stylet dans votre canapé, au soleil, dans les transports ou entre deux cours. Vous n'avez plus aucun papier à transporter.
 - *Astuce note* : Inscrivez la note sur la première page de chaque copie, au même endroit (en haut à droite par exemple).
 
 ### 3. Le Découpage & Relevé des notes dans Droopy
 Une fois tout le paquet annoté :
-1. **Étape 1 (Chargement)** : Ouvrez Droopy sur votre Mac, glissez votre PDF corrigé, choisissez la classe et le nombre de pages par copie (ex: 2 pages par élève).
+1. **Étape 1 (Chargement)** : Ouvrez Droopy sur votre ordinateur (Mac, Windows ou Linux), glissez votre PDF corrigé, choisissez la classe et le nombre de pages par copie (ex: 2 pages par élève).
 2. **Étape 2 (Identification)** : Droopy affiche un zoom haute définition sur le haut de chaque copie.
    - Tapez les premières lettres du nom de l'élève au clavier > tapez sa note > appuyez sur **Entrée**.
    - Le logiciel passe automatiquement à la copie suivante ! L'identification des 30 copies prend moins de 60 secondes.
@@ -151,7 +154,7 @@ Lors du premier lancement (ou depuis les Paramètres ⚙️ > onglet Dropbox) :
    - `sharing.write`
    - `account_info.read`
 4. Dans l'onglet **Settings**, copiez votre **App Key** et collez-la dans Droopy.
-5. Cliquez sur **« Connecter mon compte »** : une page web s'ouvre pour autoriser la connexion sur votre Mac. C'est terminé !
+5. Cliquez sur **« Connecter mon compte »** : une page web s'ouvre pour autoriser la connexion sur votre ordinateur. C'est terminé !
 
 ### Générer et héberger le Portail Web
 Pour que vos élèves puissent voir leurs copies :
@@ -178,7 +181,7 @@ Pour que vos élèves puissent voir leurs copies :
 
 ### Mes données ou celles des élèves vont-elles sur Internet ?
 **Non, absolument aucune donnée nominative ne transite par un serveur externe.**
-- Droopy fonctionne **100% hors-ligne sur votre Mac**.
+- Droopy fonctionne **100% hors-ligne sur votre ordinateur**.
 - Les copies sont stockées exclusivement sur votre compte Dropbox personnel.
 - Les données de connexion sur le portail web sont chiffrées de bout en bout : même si un tiers téléchargeait le portail, il lui serait mathématiquement impossible de lire les liens ou les notes sans le mot de passe individuel de chaque élève.
 
