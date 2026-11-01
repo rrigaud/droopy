@@ -3,6 +3,13 @@ import { storage } from './storage.js';
 import { isTauri, nativeFs } from './fs.js';
 import { sanitizeFolderName } from './accentUtils.js';
 
+/**
+ * Génère une chaîne aléatoire cryptographique pour le verifier PKCE (RFC 7636).
+ * Cette chaîne sert de secret temporaire généré sur le Mac et n'est jamais stockée sur un serveur.
+ * 
+ * @param {number} [length=64] - Longueur de la chaîne en caractères.
+ * @returns {string} Code verifier au format ASCII URL-safe.
+ */
 function generateCodeVerifier(length = 64) {
   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
   const array = new Uint8Array(length);
@@ -10,6 +17,14 @@ function generateCodeVerifier(length = 64) {
   return Array.from(array, (byte) => charset[byte % charset.length]).join('');
 }
 
+/**
+ * Calcule l'empreinte SHA-256 du code verifier encodée en Base64-URL (Code Challenge).
+ * Cette empreinte est transmise à Dropbox lors de la demande d'autorisation pour empêcher
+ * l'interception du code d'autorisation.
+ * 
+ * @param {string} verifier - Le code verifier d'origine.
+ * @returns {Promise<string>} Le challenge Base64-URL sans padding '='.
+ */
 async function generateCodeChallenge(verifier) {
   const encoder = new TextEncoder();
   const data = encoder.encode(verifier);
@@ -18,14 +33,32 @@ async function generateCodeChallenge(verifier) {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** Port et point d'accès du serveur local de capture OAuth démarré en Rust */
 const REDIRECT_URI = 'http://localhost:52478/oauth/callback';
 
+/** Cache mémoire de l'Access Token pour éviter les requêtes de rafraîchissement superflues */
 let cachedAccessToken = null;
 let tokenExpiresAt = 0;
 
+/**
+ * Service de communication avec l'API officielle de Dropbox v2.
+ * 
+ * Gère de manière autonome :
+ * - L'authentification OAuth 2.0 PKCE sans secret d'application.
+ * - Le rafraîchissement silencieux des jetons d'accès expirés.
+ * - La résolution du chemin relatif du dossier Source dans l'arborescence Dropbox.
+ * - La vérification en masse de l'existence des dossiers élèves en ligne.
+ * - La création automatique des liens partagés en lecture seule.
+ */
 export const dropboxService = {
   /**
-   * Lance le flux d'autorisation OAuth 2 PKCE pour associer un compte Dropbox
+   * Déclenche le flux d'autorisation OAuth 2.0 PKCE pour associer le compte Dropbox de l'enseignant.
+   * Démarre un serveur loopback temporaire sur http://localhost:52478, ouvre le navigateur par défaut,
+   * capture le code de redirection et l'échange contre un Refresh Token persistant.
+   * 
+   * @param {string} appKey - L'App Key Dropbox créée par l'utilisateur dans la console développeur.
+   * @returns {Promise<{success: boolean, email: string, name: string}>} Profil de l'utilisateur connecté.
+   * @throws {Error} Si l'App Key est invalide ou si l'utilisateur annule l'opération.
    */
   async connectAccount(appKey) {
     if (!appKey || !appKey.trim()) {
@@ -36,6 +69,7 @@ export const dropboxService = {
     const verifier = generateCodeVerifier();
     const challenge = await generateCodeChallenge(verifier);
 
+    // URL officielle de connexion Dropbox avec token_access_type=offline pour obtenir un refresh_token
     const authUrl =
       `https://www.dropbox.com/oauth2/authorize?client_id=${encodeURIComponent(cleanAppKey)}` +
       `&response_type=code` +
@@ -50,7 +84,7 @@ export const dropboxService = {
       // Démarre le serveur d'écoute local en Rust et ouvre le navigateur
       code = await invoke('start_dropbox_oauth_listener', { authUrl });
     } else {
-      // Fallback web
+      // Fallback web (pour tests hors application de bureau)
       window.open(authUrl, '_blank');
       code = window.prompt('Collez le code d\'autorisation Dropbox reçu dans l\'URL :');
       if (!code) throw new Error('Connexion annulée.');
@@ -86,7 +120,7 @@ export const dropboxService = {
       throw new Error('Aucun Refresh Token reçu de Dropbox. Vérifiez que token_access_type=offline est bien autorisé.');
     }
 
-    // Récupère les informations du profil utilisateur connecté
+    // Récupération des informations de profil utilisateur connecté
     let accountEmail = '';
     let accountName = '';
 
@@ -105,13 +139,14 @@ export const dropboxService = {
       }
     } catch (_) {}
 
-    // Sauvegarde persistante sur le Mac
+    // Sauvegarde sécurisée et persistante dans le stockage local du Mac
     storage.setDropboxAppKey(cleanAppKey);
     storage.setDropboxRefreshToken(refreshToken);
     storage.setDropboxAccountEmail(accountEmail);
     storage.setDropboxAccountName(accountName);
 
     cachedAccessToken = accessToken;
+    // Marge de sécurité de 60 secondes avant l'expiration déclarée par Dropbox
     tokenExpiresAt = Date.now() + (tokenData.expires_in || 14400) * 1000 - 60000;
 
     return {
@@ -122,7 +157,12 @@ export const dropboxService = {
   },
 
   /**
-   * Obtient un Access Token valide (le rafraîchit automatiquement si expiré)
+   * Délivre un jeton d'accès (Access Token) valide pour les appels d'API.
+   * Si le jeton en mémoire a expiré, le rafraîchit automatiquement et de manière transparente
+   * auprès de l'API Dropbox grâce au Refresh Token.
+   * 
+   * @returns {Promise<string>} Le jeton Bearer valide.
+   * @throws {Error} Si l'utilisateur n'a pas encore connecté son compte Dropbox.
    */
   async getValidAccessToken() {
     const appKey = storage.getDropboxAppKey();
@@ -132,18 +172,18 @@ export const dropboxService = {
       throw new Error('Compte Dropbox non connecté. Rendez-vous dans les Paramètres.');
     }
 
-    // Si on a un jeton en mémoire encore valide, on le réutilise
+    // Réutilisation du jeton en mémoire s'il est encore valide
     if (cachedAccessToken && Date.now() < tokenExpiresAt) {
       return cachedAccessToken;
     }
 
-    // Rafraîchissement automatique auprès de Dropbox
+    // Rafraîchissement automatique auprès du serveur de jetons Dropbox
     const params = new URLSearchParams();
     params.append('grant_type', 'refresh_token');
     params.append('refresh_token', refreshToken);
     params.append('client_id', appKey);
 
-    const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    const refreshRes = await fetch('https://api.dropboxapi.com/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -151,12 +191,13 @@ export const dropboxService = {
       body: params.toString(),
     });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.error_description || 'Impossible de rafraîchir le jeton Dropbox.');
+    if (!refreshRes.ok) {
+      const errJson = await refreshRes.json().catch(() => ({}));
+      const msg = errJson.error_description || errJson.error || refreshRes.statusText;
+      throw new Error(`Impossible de rafraîchir le jeton Dropbox (${msg}). Veuillez reconnecter votre compte.`);
     }
 
-    const data = await res.json();
+    const data = await refreshRes.json();
     cachedAccessToken = data.access_token;
     tokenExpiresAt = Date.now() + (data.expires_in || 14400) * 1000 - 60000;
 
@@ -164,9 +205,10 @@ export const dropboxService = {
   },
 
   /**
-   * Teste la validité de la connexion et met à jour le profil
+   * Récupère le nom et l'email du compte Dropbox actuellement associé.
+   * @returns {Promise<{name: string, email: string}>}
    */
-  async testConnection() {
+  async fetchAccountInfo() {
     const token = await this.getValidAccessToken();
     const res = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
       method: 'POST',
@@ -176,7 +218,7 @@ export const dropboxService = {
     });
 
     if (!res.ok) {
-      throw new Error('La connexion à Dropbox a échoué.');
+      throw new Error('Impossible de récupérer les informations du compte Dropbox.');
     }
 
     const data = await res.json();
@@ -186,12 +228,17 @@ export const dropboxService = {
     storage.setDropboxAccountEmail(email);
     storage.setDropboxAccountName(name);
 
-    return { email, name };
+    return { name, email };
   },
 
   /**
-   * Vérifie si le dossier Source est situé dans le dossier Dropbox local
-   * et retourne son chemin relatif pour l'API Dropbox.
+   * Analyse si le dossier Source est situé dans l'arborescence Dropbox locale de l'ordinateur
+   * et détermine son chemin relatif pour l'API Dropbox.
+   * Gère notamment le lien symbolique spécifique de macOS :
+   * `~/Library/CloudStorage/Dropbox` <-> `~/Dropbox`.
+   * 
+   * @param {string} sourceFolder - Chemin absolu du dossier Source local.
+   * @returns {Promise<{inDropbox: boolean, relativePath: string, dropboxRoot: string}>}
    */
   async getSourceFolderDropboxInfo(sourceFolder) {
     if (!sourceFolder) {
@@ -207,8 +254,7 @@ export const dropboxService = {
 
     const cleanRoot = dropboxRoot.replace(/\/+$/, '');
 
-    // Construire la liste de tous les alias possibles pour la racine Dropbox
-    // Notamment sur macOS où ~/Dropbox est un lien symbolique vers ~/Library/CloudStorage/Dropbox
+    // Gestion des alias et symlinks sous macOS CloudStorage
     const candidateRoots = new Set([cleanRoot]);
 
     if (cleanRoot.includes('/Library/CloudStorage/Dropbox')) {
@@ -236,10 +282,14 @@ export const dropboxService = {
   },
 
   /**
-   * Vérifie le statut Dropbox pour chaque élève :
-   * - Dossier Dropbox en ligne (isDropboxFolder)
-   * - Partage activé (isShared)
-   * - Nettoie les éventuelles adresses d'exemple factices
+   * Contrôle en une seule requête groupée (`files/list_folder`) l'état des dossiers élèves sur Dropbox :
+   * - Vérifie si le sous-dossier existe physiquement dans le cloud (`isDropboxFolder`).
+   * - Vérifie si un lien public est actif (`isShared`).
+   * - Renseigne une explication textuelle claire (`dropboxStatusReason`).
+   * 
+   * @param {string} sourceFolder - Dossier Source local.
+   * @param {Array<Object>} students - Liste des élèves à inspecter.
+   * @returns {Promise<Array<Object>>} Liste des élèves annotée avec les statuts réels.
    */
   async checkStudentsDropboxStatus(sourceFolder, students) {
     if (!students || !students.length) return students;
@@ -247,7 +297,7 @@ export const dropboxService = {
     const isConnected = storage.isDropboxConnected();
     const sourceInfo = await this.getSourceFolderDropboxInfo(sourceFolder);
 
-    // Cas 1 : Non connecté ou dossier Source hors de Dropbox
+    // Cas 1 : Compte non configuré ou dossier Source situé hors du dossier Dropbox
     if (!isConnected || !sourceInfo.inDropbox) {
       return students.map((s) => ({
         ...s,
@@ -265,6 +315,7 @@ export const dropboxService = {
       const rawPath = `${sourceInfo.relativePath}/Evaluations/Eleves`;
       const elevesDropboxPath = ('/' + rawPath).replace(/\/+/g, '/').replace(/\/+$/, '');
 
+      // Requête récursive sur le dossier Evaluations/Eleves pour collecter tous les dossiers existants
       const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
         method: 'POST',
         headers: {
@@ -325,7 +376,11 @@ export const dropboxService = {
   },
 
   /**
-   * Crée ou récupère le lien de partage public en lecture seule pour un dossier élève
+   * Crée ou récupère le lien de partage public en lecture seule (`access: viewer`) pour un dossier.
+   * Si le lien existe déjà, interroge `sharing/list_shared_links` pour récupérer l'URL existante.
+   * 
+   * @param {string} dropboxFolderPath - Chemin relatif du dossier sur Dropbox (ex: /Evaluations/Eleves/4B/DUPONT_Lucas).
+   * @returns {Promise<string>} URL publique de consultation Dropbox (ex: https://www.dropbox.com/scl/fo/...).
    */
   async getOrCreateSharedLink(dropboxFolderPath) {
     const token = await this.getValidAccessToken();
@@ -354,6 +409,7 @@ export const dropboxService = {
     const errJson = await createRes.json().catch(() => ({}));
     const tag = errJson?.error?.['.tag'];
 
+    // Si le lien a déjà été créé dans le passé, on le recherche et on le réutilise
     if (tag === 'shared_link_already_exists') {
       const listRes = await fetch('https://api.dropboxapi.com/2/sharing/list_shared_links', {
         method: 'POST',
@@ -380,8 +436,11 @@ export const dropboxService = {
   },
 
   /**
-   * Crée ou récupère le lien de partage public en lecture seule pour le dossier "Documents"
-   * situé à la racine du dossier Source.
+   * Crée ou vérifie le lien de partage public du dossier "Documents" situé à la racine du dossier Source.
+   * Ce dossier permet à l'enseignant de partager des cours ou fiches d'exercices communes sur le portail.
+   * 
+   * @param {string} sourceFolder - Chemin absolu du dossier Source.
+   * @returns {Promise<string>} URL du lien partagé Dropbox (ou chaîne vide si hors de Dropbox).
    */
   async ensureDocumentsSharedLink(sourceFolder) {
     if (!sourceFolder) return '';
@@ -406,7 +465,8 @@ export const dropboxService = {
   },
 
   /**
-   * Déconnecte le compte Dropbox
+   * Déconnecte le compte Dropbox en révoquant le jeton d'accès auprès des serveurs Dropbox
+   * et en effaçant les clés sauvegardées en local sur le Mac.
    */
   async disconnect() {
     try {

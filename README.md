@@ -1,106 +1,125 @@
-# Droopy 🚀
+<div align="center">
 
-Application de bureau moderne et ultra-légère conçue pour les enseignants afin de gérer facilement :
-1. **Les élèves et leurs classes** (importation CSV, mots de passe aléatoires, dossiers locaux, export sécurisé `students.js`).
-2. **Le découpage automatique des évaluations corrigées** (support PDF multi-pages, détection intelligente du nombre de pages par copie).
-3. **L'identification ultra-fluide des copies** (aperçu haute définition du haut de la feuille, saisie au clavier en temps réel, navigation assistée).
-4. **La distribution des copies et l'export des notes** (classement dans les dossiers Dropbox locaux des élèves, copie des notes pour Notion / Numbers / LibreOffice Calc).
+  <img src="public/logo.png" alt="Droopy Logo" width="130" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);" />
+
+  # DROOPY
+  ### Le workflow nomade de correction d'évaluations pour enseignants
+
+  [![Version](https://img.shields.io/badge/version-5.0.0-emerald.svg?style=flat-square)](https://github.com/rrigaud/droopy/releases)
+  [![Platform](https://img.shields.io/badge/plateforme-macOS%2012%2B-blue.svg?style=flat-square&logo=apple)](https://github.com/rrigaud/droopy/releases)
+  [![Tauri](https://img.shields.io/badge/moteur-Tauri%202%20(Rust)-orange.svg?style=flat-square&logo=tauri)](https://tauri.app)
+  [![License](https://img.shields.io/badge/licence-MIT-purple.svg?style=flat-square)](LICENSE)
+  [![Site Vitrine](https://img.shields.io/badge/site_vitrine-En_Ligne-teal.svg?style=flat-square&logo=safari)](https://rrigaud.github.io/droopy)
+
+  <p align="center">
+    <strong>Ne portez plus 150 copies. Corrigez sur tablette où vous voulez, quand vous voulez.</strong><br>
+    Droopy découpe, extrait vos notes et distribue chaque copie chiffrée dans votre Dropbox personnel.
+  </p>
+
+  <p align="center">
+    <a href="https://rrigaud.github.io/droopy"><strong>🌐 Découvrir le Site Vitrine</strong></a> •
+    <a href="docs/GUIDE_ENSEIGNANT.md"><strong>📖 Manuel Enseignant</strong></a> •
+    <a href="docs/ARCHITECTURE_TECHNIQUE.md"><strong>🛠️ Architecture Développeur</strong></a> •
+    <a href="https://github.com/rrigaud/droopy/releases"><strong>🍏 Télécharger pour Mac (.dmg)</strong></a>
+  </p>
+
+</div>
+
+---
+
+> **« Vous savez quoi ? Vos 130 copies sont déjà corrigées, découpées et rangées. »** ☕😴  
+> *L'étymologie de Droopy : **DRO**pbox + c**OPY** = le génie de la paresse utile.*
+
+---
+
+## 💡 Pourquoi Droopy ?
+
+Le problème de la correction n'a jamais été le geste d'écrire sur une copie : c'est **la lourdeur logistique du papier**. Porter 10 kg de copies empêche toute flexibilité : impossible d'avancer 15 minutes dans une salle d'attente chez le médecin, au café, sur un banc, ou en attendant ses enfants à leur sport du mercredi après-midi.
+
+**La méthode nomade Droopy transforme cette routine en 4 étapes :**
+
+1. **Le Scan Express (1 minute)** : Vous passez le paquet complet au photocopieur du collège avec une clé USB.
+2. **La Correction Nomade (Partout)** : Les 140 copies tiennent dans un iPad ou une tablette. Vous annotez au stylet par tranches de 15 minutes, où vous voulez, quand vous voulez.
+3. **Le Clic Droopy (3 secondes)** : Droopy identifie les élèves, découpe les copies individuelles, relève automatiquement les notes (prêtes à coller dans Notion, Excel ou Pronote) et les dépose dans votre Dropbox.
+4. **La Consultation Universelle pour les Familles** : Les élèves accèdent à leurs copies sur un portail web moderne (smartphone, tablette, PC, console PS5 / Nintendo Switch ou TV connectée) installable comme une vraie application (PWA).
+
+---
+
+## ✨ Fonctionnalités Clés
+
+- **⚡ Découpage sans ré-encodage** : Moteur vectoriel natif ultra-rapide capable de découper 100 pages en moins de 3 secondes tout en préservant la netteté de vos annotations au stylet.
+- **🏷️ Planches d'étiquettes de rentrée** : Génération en un clic des fiches individuelles en PDF (format 2 colonnes) à faire coller sur les cahiers avec identifiant, mot de passe et QR code de consultation.
+- **📊 Relevé automatique des notes** : Copie dans le presse-papier d'un tableau propre (`Élève \t Note`) prêt à coller dans Notion, Pronote ou LibreOffice Calc.
+- **🔐 Chiffrement AES-256 GCM Client-Side** : Les liens de partage en ligne sont chiffrés avec le mot de passe individuel de l'élève. Même l'hébergeur web ne peut pas lire les copies.
+- **🛡️ 100% Hors-Ligne & RGPD Conforme** : Zéro serveur central, zéro compte tiers payant, zéro télémétrie. Tout le traitement est exécuté localement sur votre Mac.
+
+---
+
+## 📂 Organisation du Dossier Source
+
+Droopy organise automatiquement votre dossier de travail :
+
+```text
+Dossier_Source/
+├── eleves.json                  # Base de données locale de vos élèves
+├── settings.json                # Préférences (URL portail, thèmes, synchronisations)
+├── Documents/                   # Espace pour documents généraux de l'enseignant
+└── Evaluations/
+    ├── A corriger/              # Dossier de dépôt de vos scans PDF
+    ├── Backup/                  # Archivage automatique des paquets complets
+    └── Eleves/                  # Un sous-dossier par classe et par élève
+        ├── 4eme B/
+        │   ├── DUPONT Lucas/
+        │   └── MARTIN Emma/
+        └── 3eme 1/
+```
 
 ---
 
 ## 🛠️ Stack Technique
 
-- **Interface utilisateur** : Vue 3, PrimeVue v4 (Preset Aura avec basculement Thème Clair / Sombre), TailwindCSS, PrimeIcons.
-- **Moteur PDF** : `pdf-lib` (découpage ultra-rapide des pages) et `pdfjs-dist` (rendu Canvas haute résolution).
-- **Importation & Crypto** : `PapaParse` pour les CSV et `crypto-js` pour le hashage SHA-256 de `students.js`.
-- **Application de bureau** : **Tauri 2** (Rust natif, multiplateforme macOS, Windows, Linux, empreinte mémoire minimale).
+- **Moteur Desktop** : [Tauri v2](https://tauri.app/) (Rust natif, macOS M1/M2/M3/M4 & Intel).
+- **Interface Utilisateur** : [Vue 3](https://vuejs.org/) (Composition API), [PrimeVue v4](https://primevue.org/) (Preset Aura), [TailwindCSS](https://tailwindcss.com/).
+- **Moteur PDF** : `pdf-lib` (découpage vectoriel pur) et `pdfjs-dist` (zoom Canvas haute définition).
+- **Stockage Cloud** : Dropbox API v2 (Protocole OAuth 2.0 PKCE, architecture Scoped App).
+- **Cryptographie** : WebCrypto API standard (PBKDF2 SHA-256 + AES-GCM 256 bits).
+
+Consultez le document complet d'[Architecture Technique](docs/ARCHITECTURE_TECHNIQUE.md) pour approfondir les protocoles.
 
 ---
 
-## 📂 Structure du dossier Source
+## 🚀 Démarrage Rapide (Pour les Développeurs)
 
-Le dossier **Source** sélectionné dans les Paramètres possède l'arborescence suivante :
+### Prérequis
+- macOS avec Node.js (v18+) et Rust (`cargo`).
 
-```text
-Source/
-├── eleves.json                  # Base de données JSON des élèves
-├── students.js                  # Export optionnel chiffré (SHA-256)
-├── Documents/                   # Documents généraux
-└── Evaluations/
-    ├── A corriger/              # Dossier de recherche par défaut des PDF
-    ├── Backup/                  # Archivage automatique des évaluations complètes
-    └── Eleves/                  # Arborescence par classe et par élève
-        ├── 3e1/
-        │   ├── DUPOND Martin/
-        │   │   └── 2026-10-20 - 3e1 - Devoir 1 - DUPOND Martin.pdf
-        │   └── DURAND Sophie/
-        └── 4e2/
-```
-
----
-
-## 🧭 Fonctionnement étape par étape
-
-### ⚙️ En-tête & Paramètres
-- Bouton **Paramètres** (icône engrenage) : permet de sélectionner l'emplacement local du dossier **Source** et de basculer entre **Thème Clair** et **Thème Sombre**.
-- **Stepper horizontal** indiquant l'avancement :
-  - **Step 0 : Elèves** (toujours accessible)
-  - **Step 1 : Chargement des copies**
-  - **Step 2 : Identification des copies**
-  - **Step 3 : Distribution des copies**
-
-### Step 0 : Gestion des élèves
-- **Importer un CSV** :
-  - *Étape 1* : Détection automatique des colonnes, toggleswitch pour prendre en compte ou non la 1ère ligne de titre, sélection des colonnes (les menus sélectionnés passent en vert).
-  - *Étape 2* : Tableau avec sélection multiple et import direct dans `eleves.json`.
-- **Gestion individuelle & groupée** :
-  - Ajouter / Modifier / Supprimer un élève.
-  - **Générer le dossier** : Crée automatiquement `/Evaluations/Eleves/Classe/Nom` (sans accents ni caractères spéciaux).
-  - **Générer un mot de passe** : Attribue un mot de passe aléatoire de 6 à 10 lettres courantes françaises sans accent.
-  - **Exporter le JS chiffré** : Génère `students.js` avec `{ Login: sha256(login), Niveau: classe[0], Dropbox: url }`.
-- Si tous les élèves ont leur dossier créé, le bouton **"Charger des copies..."** devient actif et mène au Step 1.
-
-### Step 1 : Chargement des copies (PDF)
-- Sélection du PDF (par défaut dans `/Evaluations/A corriger`).
-- Sélection de la date (par défaut date du jour `YYYY-MM-DD`), de la classe et du nom de l'évaluation.
-- Détection intelligente du nombre de pages par copie (1 à 6 pages, basée sur un effectif de 20 à 36 élèves).
-- Clic sur **"Archiver et identifier les copies..."** :
-  - Sauvegarde et déplacement du PDF complet dans `/Evaluations/Backup/<Date> - <Classe> - <Nom>.pdf`.
-  - Découpage en copies individuelles stockées temporairement.
-  - Transition vers le Step 2.
-
-### Step 2 : Identification ultra-fluide des copies
-- Barre de progression des copies identifiées en temps réel.
-- Volet gauche : Liste des copies identifiées (avec note) et copies restantes à identifier.
-- Volet droit :
-  - Aperçu haute définition du haut de la feuille de copie pour lire le prénom, nom et la note manuscrite.
-  - Champ de recherche d'élève en temps réel : tapez quelques lettres, descendez avec les flèches, appuyez sur **Entrée** (sélection immédiate si un seul résultat).
-  - Le curseur passe automatiquement sur le champ **Note**. Tapez la note et appuyez sur **Entrée** pour valider et passer directement à la copie suivante !
-- Vérification automatique de doublons (aucun élève ne peut recevoir 2 copies).
-- Dès que toutes les copies sont identifiées, le bouton **"Passer à la distribution..."** s'affiche.
-
-### Step 3 : Distribution & Export
-- Tableau récapitulatif de tous les élèves de la classe par ordre alphabétique :
-  - Statut de la copie (**Identifiée** en vert ou **Absente** en rouge, avec décompte dans le titre).
-  - Note individuelle et **Moyenne de la classe** affichée en en-tête.
-- **Distribuer les copies** : renomme et déplace chaque copie dans le dossier Dropbox local de chaque élève (`/Evaluations/Eleves/Classe/Nom de l'élève/`), puis supprime le dossier temporaire.
-- **Exporter les notes** : copie dans le presse-papier un tableau 2 colonnes (`Elève \t Note`) prêt à être collé directement dans **Notion**, **Numbers** ou **LibreOffice Calc**.
-- Bouton **"Distribuer une autre évaluation..."** pour réinitialiser et traiter une nouvelle classe.
-
----
-
-## 🚀 Lancement & Compilation
-
-### Mode Développement
 ```bash
-# Lancement de l'interface Vite
-npm run dev
+# 1. Cloner le projet
+git clone https://github.com/rrigaud/droopy.git
+cd droopy
 
-# Lancement de l'application de bureau Tauri
+# 2. Installer les dépendances
+npm install
+
+# 3. Lancer en mode développement
 npm run tauri dev
-```
 
-### Compilation finale de l'application de bureau (.app / .dmg sur Mac, .exe sur Windows, .deb/.AppImage sur Linux)
-```bash
+# 4. Compiler le fichier d'installation (.dmg)
 npm run tauri build
 ```
+
+---
+
+## 📚 Liens Utiles
+
+- 🌐 **Site Vitrine Officiel** : [https://rrigaud.github.io/droopy](https://rrigaud.github.io/droopy)
+- 📖 **Manuel Enseignant Pas-à-Pas** : [docs/GUIDE_ENSEIGNANT.md](docs/GUIDE_ENSEIGNANT.md)
+- 🛠️ **Architecture & Cryptographie** : [docs/ARCHITECTURE_TECHNIQUE.md](docs/ARCHITECTURE_TECHNIQUE.md)
+- 🤝 **Guide de Contribution** : [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+- 🐛 **Signaler un Problème** : [GitHub Issues](https://github.com/rrigaud/droopy/issues)
+
+---
+
+## 📜 Licence
+
+Projet publié sous licence libre **[MIT](LICENSE)** — Développé avec passion pour la communauté enseignante.

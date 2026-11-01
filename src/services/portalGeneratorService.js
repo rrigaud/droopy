@@ -6,7 +6,17 @@ import { sha256 } from './cryptoService.js';
 import { DEFAULT_PORTAL_ICON_B64 } from '../assets/portal-icons/defaultIconBase64.js';
 
 /**
- * Chiffre les données d'un élève avec son mot de passe (AES-GCM 256 bits + PBKDF2)
+ * Chiffre les données sensibles d'un élève (nom, classe, lien Dropbox) avec son mot de passe personnel.
+ * 
+ * Modèle cryptographique standard W3C WebCrypto :
+ * 1. Dérivation de clé PBKDF2 (SHA-256, 10 000 itérations) à partir du mot de passe en texte brut
+ *    avec un sel aléatoire de 16 octets (unique par élève) pour empêcher les attaques par dictionnaire.
+ * 2. Chiffrement symétrique AES-GCM 256 bits avec un Vecteur d'Initialisation (IV) de 12 octets.
+ * 3. Encodage hexadécimal du sel (s), de l'IV (iv) et du texte chiffré (c).
+ * 
+ * @param {string} password - Mot de passe de l'élève (ex: "kiwi-bleu-42").
+ * @param {Object} payload - Données à protéger : { name, classe, gender, dropbox }.
+ * @returns {Promise<{s: string, iv: string, c: string}>} Objet contenant le sel, l'IV et le ciphertext en hexadécimal.
  */
 async function encryptStudentData(password, payload) {
   const enc = new TextEncoder();
@@ -49,9 +59,24 @@ async function encryptStudentData(password, payload) {
   };
 }
 
+/**
+ * Service de génération et de compilation du portail web statique autonome.
+ * 
+ * Ce service assemble dans `<Dossier Source>/Portail-Web/` :
+ * - `index.html` : L'application web monopage complète (HTML, CSS et logique de déchiffrement WebCrypto).
+ * - `scripts/data.js` : Le dictionnaire chiffré des élèves avec empreintes SHA-256 des identifiants.
+ * - `manifest.json` : Le manifeste de Progressive Web App (PWA) pour installation sur écran d'accueil mobile.
+ * - `images/icons/` : Les icônes PNG 192x192 et 512x512 adaptées pour smartphones et tablettes.
+ */
 export const portalGeneratorService = {
   /**
-   * Génère le dossier autonome Portail-Web dans le dossier Source
+   * Génère le dossier autonome `Portail-Web/` dans le dossier Source.
+   * Chiffre individuellement chaque élève et met à jour l'horodatage de génération dans settings.json.
+   * 
+   * @param {string} sourceFolder - Chemin absolu du dossier Source.
+   * @param {Array<Object>} [students=[]] - Liste des élèves à inclure.
+   * @returns {Promise<{outDir: string, studentCount: number, generatedAt: string}>} Rapport de génération.
+   * @throws {Error} Si le dossier Source n'est pas spécifié.
    */
   async generatePortal(sourceFolder, students = []) {
     if (!sourceFolder) {
