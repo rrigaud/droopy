@@ -1,6 +1,6 @@
 [package]
 name = "droopy"
-version = "5.0.0"
+version = "5.0.1"
 description = "Droopy - DROpbox cOPY"
 authors = ["Droopy Team"]
 license = "MIT"

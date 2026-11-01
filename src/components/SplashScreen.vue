@@ -24,7 +24,7 @@
             <span
               class="absolute -bottom-1 -right-1 px-2.5 py-1 rounded-full bg-blue-600 text-xs font-extrabold text-white uppercase tracking-wider shadow-lg border border-blue-400/40"
             >
-              v5.0.0
+              v5.0.1
             </span>
           </div>
 

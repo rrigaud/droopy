@@ -5,7 +5,7 @@
   # DROOPY
   ### Le workflow nomade de correction d'évaluations pour enseignants
 
-  [![Version](https://img.shields.io/badge/version-5.0.0-emerald.svg?style=flat-square)](https://github.com/rrigaud/droopy/releases)
+  [![Version](https://img.shields.io/badge/version-5.0.1-emerald.svg?style=flat-square)](https://github.com/rrigaud/droopy/releases)
   [![Platform](https://img.shields.io/badge/plateformes-macOS%20%E2%80%A2%20Windows%20%E2%80%A2%20Linux-blue.svg?style=flat-square)](https://github.com/rrigaud/droopy/releases)
   [![Tauri](https://img.shields.io/badge/moteur-Tauri%202%20(Rust)-orange.svg?style=flat-square&logo=tauri)](https://tauri.app)
   [![License](https://img.shields.io/badge/licence-MIT-purple.svg?style=flat-square)](LICENSE)
