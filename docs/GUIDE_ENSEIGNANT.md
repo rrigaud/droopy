@@ -58,7 +58,30 @@ C'est là qu'intervient **Droopy** :
    - Sur **macOS** : Téléchargez le fichier `.dmg`, ouvrez-le et glissez l'icône dans votre dossier Applications.
    - Sur **Windows** : Téléchargez le fichier `.exe` ou `.msi` et suivez l'assistant d'installation.
    - Sur **Linux** : Téléchargez le paquet `.deb` ou `.AppImage`.
-2. Lancez Droopy. *(Sous macOS, si un avertissement de sécurité s'affiche au tout premier lancement, faites Clic-droit sur l'application > « Ouvrir » > confirmez l'ouverture).*
+2. Lancez l'application.
+
+> [!NOTE]
+> **Pourquoi un avertissement de sécurité s'affiche au premier lancement ?**  
+> Droopy est un logiciel gratuit, open-source et bénévole. Il n'est pas financé par des abonnements commerciaux et n'achète donc pas les certificats payants imposés par Apple (99 $/an) ou Microsoft. Vos systèmes d'exploitation appliquent donc leur filtre de précaution standard par défaut. L'autorisation ne prend que quelques secondes et n'est requise **qu'une seule fois**.
+
+#### 🍏 Autoriser Droopy sur macOS (Gatekeeper)
+Si macOS bloque l'ouverture ou indique que l'application ne peut pas être vérifiée :
+- **Méthode recommandée (Interface graphique macOS)** :
+  1. Glissez Droopy dans votre dossier **Applications**.
+  2. Double-cliquez sur Droopy. Lorsque l'alerte apparaît, cliquez sur **Annuler** (ou Ne pas ouvrir).
+  3. Ouvrez les **Réglages Système** 🍏 de votre Mac > allez dans le menu **Confidentialité et sécurité**.
+  4. Descendez tout en bas de la page : vous verrez la mention *« "Droopy" a été bloqué car il ne provient pas d'un développeur identifié »*.
+  5. Cliquez sur le bouton **« Ouvrir quand même »** et confirmez avec votre mot de passe ou Touch ID. Droopy se lancera normalement et macOS s'en souviendra définitivement !
+- **Méthode express (Via le Terminal)** :
+  Ouvrez l'application *Terminal* de votre Mac, collez la commande suivante et appuyez sur Entrée :
+  ```bash
+  xattr -cr /Applications/Droopy.app
+  ```
+
+#### 🪟 Autoriser Droopy sur Windows (SmartScreen)
+Si l'écran bleu *Windows SmartScreen* s'affiche (*« Windows a protégé votre ordinateur »*) :
+1. Cliquez sur le lien **« Informations complémentaires »**.
+2. Cliquez sur le bouton **« Exécuter quand même »**.
 
 ### Le Dossier « Source »
 Au tout premier lancement, Droopy vous demande de choisir un **Dossier Source** :
