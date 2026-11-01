@@ -507,12 +507,20 @@ body {
 }
 .form-input::placeholder {
   color: rgba(255, 255, 255, 0.35);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: normal;
+  font-size: 14px;
 }
 .form-input.pwd-field {
   padding-right: 44px;
   font-family: monospace;
   font-size: 15px;
   letter-spacing: 1px;
+}
+.form-input.pwd-field::placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: normal;
+  font-size: 14px;
 }
 .form-input:focus {
   border-color: var(--theme-input-focus);
@@ -1163,13 +1171,13 @@ body {
             type="text"
             id="inputLogin"
             class="form-input"
-            placeholder="ex: prenom.nom"
+            placeholder="Votre identifiant"
             autocapitalize="none"
             autocorrect="off"
             spellcheck="false"
           >
         </div>
-        <div class="input-hint">Transmis par votre enseignant (ex: prenom.nom)</div>
+        <div class="input-hint">Transmis par votre enseignant</div>
       </div>
 
       <div class="form-group">
